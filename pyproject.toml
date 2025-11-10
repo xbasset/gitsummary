@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gitsummary"
+version = "0.1.0"
+description = "A Python CLI tool for collecting and analyzing Git change sets"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "gitsummary contributors"}
+]
+keywords = ["git", "cli", "analysis", "changelog"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "typer>=0.9.0",
+    "gitpython>=3.1.40",
+    "pathspec>=0.11.0",
+]
+
+[project.scripts]
+gitsummary = "gitsummary.cli:app"
+
+[tool.setuptools]
+packages = ["gitsummary"]
+
+[tool.setuptools.package-data]
+gitsummary = ["py.typed"]
+
+[tool.black]
+line-length = 100
+target-version = ['py38']
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
