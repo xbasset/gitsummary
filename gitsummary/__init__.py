@@ -1,5 +1,9 @@
-"""gitsummary CLI package."""
+"""High-level package metadata for :mod:`gitsummary`."""
 
-__all__ = ["main"]
+from __future__ import annotations
 
-from .cli import main
+__all__ = ["__version__", "app"]
+
+__version__ = "0.1.0"
+
+from .cli import app  # noqa: E402  (import after __version__ definition)
