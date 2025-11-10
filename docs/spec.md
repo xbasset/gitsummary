@@ -5,9 +5,9 @@
 
 `gitsummary` is a Python-based CLI tool that:
 
-1. **Collects** pure-git-derived information between two Git references (`tags`, `commits`, or revision ranges).
+1. **Collects** pure-git-derived information between two Git tags (future: support for broader Git references).
 2. **Generates an artifact** representing the semantic meaning of the change set.
-3. **Stores this artifact using Git-native mechanisms** for durability, versioning, and integration.
+3. **Stores this artifact in a `.gitsummary/` directory** for durability, versioning, and integration (future: Git-native mechanisms).
 4. **Analyzes stored artifacts** to produce domain-specific facets (e.g., deployment impact).
 5. Supports **interactive analysis** to let users clarify assumptions (optional future capability).
 
@@ -34,17 +34,17 @@ gitsummary collect --tag <A> <B>
   * maintainability
   * deployment-related findings
   * meta information (schema version, confidence, evidence references)
-* Writes the artifact into a **Git-native storage layer** (see Section 4).
+* Writes the artifact into the `.gitsummary/` storage directory (see Section 4).
 * Outputs:
-  `artifact <ART_OID> created`
+  `Artifact created: <ART_OID>`
 
 ### **2.2 `analyze`**
 
 ```
-gitsummary analyze <ARTIFACT_ID> --target <facet>
+gitsummary analyze <ART_OID> --target <facet>
 ```
 
-* Loads the artifact identified by `<ARTIFACT_ID>`.
+* Loads the artifact identified by `<ART_OID>`.
 * Runs analyzers to produce a facet-specific interpretation (e.g., `deployment`).
 * Future: may support `--interactive` mode for clarification questions.
 
@@ -68,6 +68,7 @@ Each artifact produced during `collect` includes the following **agreed-upon sec
 * inferred goal of the change set
 * inferred rationale
 * inferred domain or subsystem affected
+* inferred via LLM reasoning; no AST parsing involved
 
 ### **3.3 `implementation`**
 
@@ -77,6 +78,7 @@ Each artifact produced during `collect` includes the following **agreed-upon sec
 * code patterns detected
 * dependencies added/removed
 * approximate complexity delta
+* derived from diff metadata and heuristics (no AST traversal)
 
 ### **3.4 `impact`**
 
@@ -107,62 +109,35 @@ Each artifact produced during `collect` includes the following **agreed-upon sec
 
 ---
 
-## **4. Git-Native Storage Design**
+## **4. Storage Design**
 
-Artifacts and analyses are stored **inside the Git repository** using Git’s native data model.
+Artifacts and supporting metadata are persisted **inside the repository working tree** under a dedicated directory rather than native Git refs.
 
-### **4.1 Canonical Artifact ID**
-
-* The artifact ID (`XXX`) is the **Git blob object ID** (SHA-1 or SHA-256 depending on repo format) produced using:
+### **4.1 `.gitsummary/` layout (POC canonical)**
 
 ```
-git hash-object -w artifact.json
+.gitsummary/
+  artifacts/
+    <ART_OID>.json
+  manifests/
+    by-range/
+      <A>..<B>.json            # pointer to <ART_OID>
+  index/
+    latest.json                # pointer to most recent <ART_OID>
+  schema/
+    version                    # "0.1.0"
+  notes/                       # reserved for future use
+    summary/
 ```
 
-This makes artifacts:
+* **Artifact identity (`<ART_OID>`):** SHA-256 of the artifact JSON content.
+* **Serialization:** natural `json.dumps` in the POC (future: canonical JSON for determinism).
+* **Determinism:** not required in the POC; timestamps and ordering may vary run-to-run.
+* **Analyzer outputs:** printed to stdout by default; persistence is deferred.
 
-* content-addressed
-* deduplicated
-* reproducible
-* compatible with Git plumbing and GC rules
+### **4.2 Git-native roadmap (future)**
 
-A human-friendly alias may be stored *inside* the artifact, but the **canonical public ID is the blob OID**.
-
-### **4.2 Dedicated Ref Namespace**
-
-Artifacts are stored under:
-
-```
-refs/gitsummary/main
-```
-
-This ref points to a commit whose tree contains:
-
-```
-/artifacts/<ART_OID>.json
-/manifests/by-range/<A>..<B>
-/index/latest
-/schema/version
-```
-
-All updates are appended as new commits under `refs/gitsummary/main`.
-
-### **4.3 Git Notes (Optional but Agreed Future Feature)**
-
-Artifacts may also be referenced from the relevant closing commit or tag using notes:
-
-```
-refs/notes/gitsummary
-```
-
-The note contains the artifact’s blob OID.
-
-### **4.4 GC Safety**
-
-Artifacts and notes are protected from garbage collection because they are referenced via:
-
-* a persistent ref (`refs/gitsummary/main`)
-* optional notes (`refs/notes/gitsummary`)
+The `.gitsummary/` directory mirrors a future Git-native implementation (refs, notes, GC safety). Those details remain in the roadmap but are **not part of the initial POC scope**.
 
 ---
 
@@ -175,7 +150,7 @@ Artifacts and notes are protected from garbage collection because they are refer
   * diff
   * log
   * file changes
-  * blame (optional, future)
+  * blame (collected by default)
   * tree structure
 * No reliance on GitHub/GitLab APIs.
 
@@ -205,7 +180,7 @@ Artifacts and notes are protected from garbage collection because they are refer
 
 * Implement `collect` between two tags.
 * Generate first-version artifacts.
-* Store artifacts using Git-native storage described above.
+* Store artifacts in the `.gitsummary/` directory structure described above.
 * Implement a basic `deployment` analyzer.
 
 ### **6.2 Long-Term Vision**
@@ -218,9 +193,6 @@ Artifacts and notes are protected from garbage collection because they are refer
 
 # gitsummary — Decisions & Direction (v0.1)
 
-> This document consolidates **all confirmed decisions** from our design Q&A so far. It is intended to be appended to the project spec as the authoritative “decisions log” for the POC. No open questions are included here.
-
----
 
 ## 1) Scope & Goals (POC)
 
@@ -244,13 +216,13 @@ gitsummary collect --tag <A> <B>
 * **Output:** Writes an artifact file to the local `.gitsummary` store and prints:
 
   ```
-  Artifact created: <ARTIFACT_ID>
+  Artifact created: <ART_OID>
   ```
 
 ### 2.2 `analyze`
 
 ```bash
-gitsummary analyze <ARTIFACT_ID> --target <facet>
+gitsummary analyze <ART_OID> --target <facet>
 ```
 
 * **Single facet per run** in POC (e.g., `--target deployment`).
@@ -264,8 +236,8 @@ gitsummary analyze <ARTIFACT_ID> --target <facet>
 * **Content:**
 
   * `context`: commit range `A..B`, authors, date range, summary of commit messages.
-  * `intention` *(inferred)*: goal, rationale, domain/subsystem.
-  * `implementation`: files changed, LOC added/removed, patterns detected, dependencies changed, rough complexity delta.
+  * `intention` *(inferred)*: goal, rationale, domain/subsystem (LLM-inferred; no AST parsing).
+  * `implementation`: files changed, LOC added/removed, patterns detected, dependencies changed, rough complexity delta (diff- and heuristic-based).
   * `impact`: user-visible changes, before/after behavior, compatibility risks.
   * `maintainability`: tech debt delta, tests delta, architectural implications, refactor signals.
   * `deployment`: new logs, error handling changes, config/infra diffs (Dockerfile, CI, k8s/helm/terraform), monitoring notes.
@@ -293,12 +265,12 @@ gitsummary analyze <ARTIFACT_ID> --target <facet>
   ```
   .gitsummary/
     artifacts/
-      <ARTIFACT_ID>.json
+      <ART_OID>.json
     manifests/
       by-range/
-        <A>..<B>.json            # pointer to <ARTIFACT_ID>
+        <A>..<B>.json            # pointer to <ART_OID>
     index/
-      latest.json                # pointer to most recent <ARTIFACT_ID>
+      latest.json                # pointer to most recent <ART_OID>
     schema/
       version                    # "0.1.0"
     notes/                       # (reserved; empty in POC)
@@ -424,4 +396,3 @@ gitsummary collect --tag 0.1 0.2
 gitsummary analyze 3fa4c021 --target deployment
 # → (stdout) JSON or Markdown with deployment insights
 ```
-
