@@ -1,0 +1,9 @@
+# .gitsummaryignore
+#
+# Additional patterns to ignore beyond .gitignore
+# (Default patterns are built-in, add custom patterns here)
+
+# Example custom ignores:
+# *.generated.js
+# vendor/specific-package/
+

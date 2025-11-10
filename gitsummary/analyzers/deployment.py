@@ -1,245 +1,379 @@
-"""Deployment analyzer for artifacts."""
+"""
+Deployment facet analyzer.
 
-import json
-from typing import Any, Dict
+Analyzes artifacts for deployment-related insights including logging,
+configuration, infrastructure, and operational considerations.
+"""
+
+from typing import Any, Dict, List
 
 from gitsummary.analyzers.base import Analyzer
 
 
 class DeploymentAnalyzer(Analyzer):
-    """Analyzer for deployment-related facets."""
+    """
+    Analyzer for deployment-related facets.
+
+    Focuses on:
+    - New logging patterns
+    - Error handling changes
+    - Configuration modifications
+    - Infrastructure changes
+    - Monitoring recommendations
+    """
+
+    @property
+    def name(self) -> str:
+        """Return the analyzer name."""
+        return "deployment"
+
+    @property
+    def description(self) -> str:
+        """Return analyzer description."""
+        return "Analyzes deployment impact including logs, config, and infrastructure"
 
     def analyze(self, artifact: Dict[str, Any]) -> Dict[str, Any]:
-        """Analyze deployment facet of an artifact.
+        """
+        Analyze the artifact for deployment insights.
 
         Args:
-            artifact: The artifact dictionary
+            artifact: Complete artifact dictionary.
 
         Returns:
-            Deployment analysis results
+            Deployment analysis results.
         """
         deployment = artifact.get("deployment", {})
-        implementation = artifact.get("implementation", {})
         context = artifact.get("context", {})
+        implementation = artifact.get("implementation", {})
+        impact = artifact.get("impact", {})
 
         # Build comprehensive deployment analysis
         analysis = {
-            "summary": self._generate_summary(deployment, implementation, context),
-            "logging_changes": {
-                "new_logs": deployment.get("new_logs", []),
-                "impact": "Review new logging statements for production readiness",
-            },
-            "error_handling": {
-                "changes": deployment.get("error_handling_changes", []),
-                "impact": "Error handling modifications may affect error reporting and monitoring",
-            },
-            "configuration": {
-                "files": deployment.get("configuration_changes", []),
-                "impact": "Configuration changes may require environment updates",
-                "recommendations": [
-                    "Verify all configuration changes are documented",
-                    "Check for environment variable changes",
-                    "Review configuration defaults",
-                ],
-            },
-            "infrastructure": {
-                "files": deployment.get("infrastructure_changes", []),
-                "impact": "Infrastructure changes detected - review deployment procedures",
-                "recommendations": [
-                    "Review Dockerfile changes for base image updates",
-                    "Check Kubernetes manifests for resource changes",
-                    "Verify CI/CD pipeline changes",
-                    "Test infrastructure changes in staging",
-                ],
-            },
-            "monitoring": {
-                "notes": deployment.get("monitoring_notes", ""),
-                "recommendations": [
-                    "Integrate new logging with monitoring systems",
-                    "Set up alerts for new error handling paths",
-                    "Review metrics collection for new features",
-                ],
-            },
-            "deployment_readiness": self._assess_readiness(deployment, implementation),
+            "summary": self._build_summary(deployment, context),
+            "logging": self._analyze_logging(deployment),
+            "error_handling": self._analyze_error_handling(deployment),
+            "configuration": self._analyze_configuration(deployment),
+            "infrastructure": self._analyze_infrastructure(deployment),
+            "risks": self._assess_deployment_risks(deployment, impact),
+            "recommendations": self._generate_recommendations(
+                deployment, implementation, impact
+            ),
+            "checklist": self._generate_checklist(deployment),
         }
 
         return analysis
 
-    def _generate_summary(self, deployment: Dict, implementation: Dict, context: Dict) -> str:
-        """Generate a summary of deployment changes.
+    def _build_summary(
+        self, deployment: Dict[str, Any], context: Dict[str, Any]
+    ) -> str:
+        """Generate a high-level deployment summary."""
+        tag_range = context.get("commit_range", "unknown")
+        file_count = context.get("file_count", 0)
 
-        Args:
-            deployment: Deployment section of artifact
-            implementation: Implementation section of artifact
-            context: Context section of artifact
+        parts = [f"Deployment analysis for {tag_range}"]
 
-        Returns:
-            Summary string
-        """
-        infra_count = len(deployment.get("infrastructure_changes", []))
+        # Count significant changes
+        log_count = deployment.get("new_logs_detected", {}).get("count", 0)
+        error_count = deployment.get("error_handling_changes", {}).get("count", 0)
         config_count = len(deployment.get("configuration_changes", []))
-        log_count = len(deployment.get("new_logs", []))
-        error_count = len(deployment.get("error_handling_changes", []))
+        infra_count = len(deployment.get("infrastructure_changes", []))
 
-        parts = []
-        if infra_count > 0:
-            parts.append(f"{infra_count} infrastructure change(s)")
-        if config_count > 0:
-            parts.append(f"{config_count} configuration change(s)")
         if log_count > 0:
-            parts.append(f"{log_count} new logging statement(s)")
+            parts.append(f"{log_count} files with new logging")
         if error_count > 0:
-            parts.append(f"{error_count} error handling change(s)")
+            parts.append(f"{error_count} files with error handling changes")
+        if config_count > 0:
+            parts.append(f"{config_count} configuration files changed")
+        if infra_count > 0:
+            parts.append(f"{infra_count} infrastructure files changed")
 
-        if parts:
-            summary = f"Deployment analysis for {context.get('commit_range', 'unknown range')}: "
-            summary += ", ".join(parts) + "."
-        else:
-            summary = f"No significant deployment changes detected for {context.get('commit_range', 'unknown range')}."
+        if len(parts) == 1:
+            parts.append("no significant deployment changes detected")
 
-        return summary
+        return ", ".join(parts) + "."
 
-    def _assess_readiness(self, deployment: Dict, implementation: Dict) -> Dict[str, Any]:
-        """Assess deployment readiness.
-
-        Args:
-            deployment: Deployment section of artifact
-            implementation: Implementation section of artifact
-
-        Returns:
-            Readiness assessment dictionary
-        """
-        readiness_score = 1.0
-        concerns = []
-
-        # Check for infrastructure changes without tests
-        infra_changes = deployment.get("infrastructure_changes", [])
-        test_files = implementation.get("test_files_changed", 0)
-        if infra_changes and test_files == 0:
-            concerns.append("Infrastructure changes detected without corresponding test changes")
-            readiness_score -= 0.2
-
-        # Check for configuration changes
-        config_changes = deployment.get("configuration_changes", [])
-        if config_changes:
-            concerns.append("Configuration changes require manual review")
-            readiness_score -= 0.1
-
-        # Check for error handling changes
-        error_changes = deployment.get("error_handling_changes", [])
-        if error_changes:
-            concerns.append("Error handling changes should be tested thoroughly")
-
-        readiness_score = max(0.0, readiness_score)
+    def _analyze_logging(self, deployment: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze logging changes."""
+        log_data = deployment.get("new_logs_detected", {})
+        count = log_data.get("count", 0)
+        files = log_data.get("files", [])
 
         return {
-            "score": readiness_score,
-            "level": self._score_to_level(readiness_score),
-            "concerns": concerns,
-            "recommendations": [
-                "Run full test suite before deployment",
-                "Review all configuration changes",
-                "Verify infrastructure changes in staging environment",
-            ],
+            "new_log_statements": count,
+            "affected_files": files,
+            "impact": self._assess_logging_impact(count),
+            "notes": self._logging_notes(count),
         }
 
-    def _score_to_level(self, score: float) -> str:
-        """Convert readiness score to level.
-
-        Args:
-            score: Readiness score (0.0 to 1.0)
-
-        Returns:
-            Level string
-        """
-        if score >= 0.9:
-            return "high"
-        elif score >= 0.7:
-            return "medium"
-        elif score >= 0.5:
+    def _assess_logging_impact(self, count: int) -> str:
+        """Assess the impact of logging changes."""
+        if count == 0:
+            return "none"
+        elif count < 5:
             return "low"
+        elif count < 15:
+            return "medium"
         else:
-            return "critical_review_needed"
+            return "high"
 
-    def format_output(self, analysis: Dict[str, Any], format_type: str = "json") -> str:
-        """Format analysis results for output.
+    def _logging_notes(self, count: int) -> List[str]:
+        """Generate notes about logging changes."""
+        if count == 0:
+            return ["No new logging detected"]
 
-        Args:
-            analysis: Analysis results dictionary
-            format_type: Output format ('json' or 'markdown')
+        notes = [
+            f"{count} file(s) with new logging statements",
+            "Review log levels (debug/info/warn/error)",
+            "Ensure sensitive data is not logged",
+        ]
 
-        Returns:
-            Formatted string
-        """
-        if format_type == "json":
-            return json.dumps(analysis, indent=2, default=str)
-        elif format_type == "markdown":
-            return self._format_markdown(analysis)
-        else:
-            raise ValueError(f"Unknown format type: {format_type}")
+        if count > 10:
+            notes.append("Consider log volume impact on storage and performance")
 
-    def _format_markdown(self, analysis: Dict[str, Any]) -> str:
-        """Format analysis as Markdown.
+        return notes
 
-        Args:
-            analysis: Analysis results dictionary
+    def _analyze_error_handling(self, deployment: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze error handling changes."""
+        error_data = deployment.get("error_handling_changes", {})
+        count = error_data.get("count", 0)
+        files = error_data.get("files", [])
 
-        Returns:
-            Markdown formatted string
-        """
-        lines = ["# Deployment Analysis\n", f"{analysis['summary']}\n"]
+        return {
+            "modified_files": count,
+            "affected_files": files,
+            "impact": "medium" if count > 0 else "none",
+            "notes": self._error_handling_notes(count),
+        }
 
-        # Logging changes
-        if analysis["logging_changes"]["new_logs"]:
-            lines.append("## Logging Changes\n")
-            for log in analysis["logging_changes"]["new_logs"]:
-                lines.append(f"- **{log['file']}**: {log['pattern']}\n")
-            lines.append(f"\n{analysis['logging_changes']['impact']}\n")
+    def _error_handling_notes(self, count: int) -> List[str]:
+        """Generate notes about error handling changes."""
+        if count == 0:
+            return ["No error handling changes detected"]
 
-        # Error handling
-        if analysis["error_handling"]["changes"]:
-            lines.append("## Error Handling Changes\n")
-            for file in analysis["error_handling"]["changes"]:
-                lines.append(f"- {file}\n")
-            lines.append(f"\n{analysis['error_handling']['impact']}\n")
+        return [
+            f"{count} file(s) with error handling modifications",
+            "Verify error messages are user-friendly",
+            "Ensure proper error propagation",
+            "Review alerting rules for new error conditions",
+        ]
 
-        # Configuration
-        if analysis["configuration"]["files"]:
-            lines.append("## Configuration Changes\n")
-            for file in analysis["configuration"]["files"]:
-                lines.append(f"- {file}\n")
-            lines.append("\n### Recommendations\n")
-            for rec in analysis["configuration"]["recommendations"]:
-                lines.append(f"- {rec}\n")
+    def _analyze_configuration(self, deployment: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze configuration changes."""
+        config_files = deployment.get("configuration_changes", [])
 
-        # Infrastructure
-        if analysis["infrastructure"]["files"]:
-            lines.append("## Infrastructure Changes\n")
-            for file in analysis["infrastructure"]["files"]:
-                lines.append(f"- {file}\n")
-            lines.append(f"\n{analysis['infrastructure']['impact']}\n")
-            lines.append("\n### Recommendations\n")
-            for rec in analysis["infrastructure"]["recommendations"]:
-                lines.append(f"- {rec}\n")
+        return {
+            "files_changed": len(config_files),
+            "files": config_files,
+            "impact": "high" if config_files else "none",
+            "notes": self._configuration_notes(config_files),
+        }
 
-        # Monitoring
-        lines.append("## Monitoring\n")
-        lines.append(f"{analysis['monitoring']['notes']}\n")
-        lines.append("\n### Recommendations\n")
-        for rec in analysis["monitoring"]["recommendations"]:
-            lines.append(f"- {rec}\n")
+    def _configuration_notes(self, files: List[str]) -> List[str]:
+        """Generate notes about configuration changes."""
+        if not files:
+            return ["No configuration changes detected"]
 
-        # Deployment readiness
-        readiness = analysis["deployment_readiness"]
-        lines.append("## Deployment Readiness\n")
-        lines.append(f"**Score**: {readiness['score']:.2f} ({readiness['level']})\n")
-        if readiness["concerns"]:
-            lines.append("\n### Concerns\n")
-            for concern in readiness["concerns"]:
-                lines.append(f"- ⚠️ {concern}\n")
-        lines.append("\n### Recommendations\n")
-        for rec in readiness["recommendations"]:
-            lines.append(f"- {rec}\n")
+        notes = [
+            f"{len(files)} configuration file(s) modified",
+            "Update deployment documentation",
+            "Verify environment-specific settings",
+        ]
 
-        return "".join(lines)
+        # Specific file type guidance
+        if any("Dockerfile" in f for f in files):
+            notes.append("Docker image rebuild required")
+        if any(".env" in f for f in files):
+            notes.append("Update environment variables in deployment targets")
+        if any(".yaml" in f or ".yml" in f for f in files):
+            notes.append("Review YAML syntax and apply to all environments")
 
+        return notes
+
+    def _analyze_infrastructure(self, deployment: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze infrastructure changes."""
+        infra_files = deployment.get("infrastructure_changes", [])
+
+        return {
+            "files_changed": len(infra_files),
+            "files": infra_files,
+            "impact": "high" if infra_files else "none",
+            "notes": self._infrastructure_notes(infra_files),
+        }
+
+    def _infrastructure_notes(self, files: List[str]) -> List[str]:
+        """Generate notes about infrastructure changes."""
+        if not files:
+            return ["No infrastructure changes detected"]
+
+        notes = [
+            f"{len(files)} infrastructure file(s) modified",
+            "Plan infrastructure changes during maintenance window",
+            "Test in staging environment first",
+        ]
+
+        # Specific infrastructure type guidance
+        if any("k8s" in f or "kubernetes" in f for f in files):
+            notes.append("Kubernetes: Review resource limits and apply with kubectl")
+        if any("helm" in f for f in files):
+            notes.append("Helm: Update chart version and test upgrade path")
+        if any("terraform" in f or ".tf" in f for f in files):
+            notes.append("Terraform: Run plan before apply, review state changes")
+        if any("github/workflows" in f or "gitlab-ci" in f for f in files):
+            notes.append("CI/CD: Verify pipeline changes don't break builds")
+
+        return notes
+
+    def _assess_deployment_risks(
+        self, deployment: Dict[str, Any], impact: Dict[str, Any]
+    ) -> List[Dict[str, str]]:
+        """Assess deployment risks."""
+        risks = []
+
+        # Configuration risks
+        config_files = deployment.get("configuration_changes", [])
+        if config_files:
+            risks.append(
+                {
+                    "level": "high",
+                    "category": "configuration",
+                    "description": "Configuration changes may cause runtime failures if not properly updated across environments",
+                }
+            )
+
+        # Infrastructure risks
+        infra_files = deployment.get("infrastructure_changes", [])
+        if infra_files:
+            risks.append(
+                {
+                    "level": "high",
+                    "category": "infrastructure",
+                    "description": "Infrastructure changes require careful coordination and may cause downtime",
+                }
+            )
+
+        # Compatibility risks from impact section
+        compat_risks = impact.get("compatibility_risks", [])
+        if compat_risks:
+            risks.append(
+                {
+                    "level": "medium",
+                    "category": "compatibility",
+                    "description": "; ".join(compat_risks),
+                }
+            )
+
+        # Error handling risks
+        error_count = deployment.get("error_handling_changes", {}).get("count", 0)
+        if error_count > 5:
+            risks.append(
+                {
+                    "level": "medium",
+                    "category": "stability",
+                    "description": f"{error_count} files with error handling changes may affect application stability",
+                }
+            )
+
+        if not risks:
+            risks.append(
+                {
+                    "level": "low",
+                    "category": "general",
+                    "description": "No significant deployment risks detected",
+                }
+            )
+
+        return risks
+
+    def _generate_recommendations(
+        self,
+        deployment: Dict[str, Any],
+        implementation: Dict[str, Any],
+        impact: Dict[str, Any],
+    ) -> List[str]:
+        """Generate deployment recommendations."""
+        recommendations = []
+
+        # Monitoring recommendations from deployment section
+        monitoring_notes = deployment.get("monitoring_notes", [])
+        recommendations.extend(monitoring_notes)
+
+        # Dependency recommendations
+        dep_changes = implementation.get("dependency_changes", [])
+        if dep_changes:
+            recommendations.append(
+                f"Update dependencies: {', '.join(dep_changes)} - verify compatibility"
+            )
+
+        # Testing recommendations
+        if impact.get("breaking_changes_detected"):
+            recommendations.append(
+                "Breaking changes detected - run full regression test suite"
+            )
+
+        # Complexity recommendations
+        complexity = implementation.get("complexity_delta", "low")
+        if complexity == "high":
+            recommendations.append(
+                "High complexity change - consider staged rollout or feature flags"
+            )
+
+        # Logging volume recommendation
+        log_count = deployment.get("new_logs_detected", {}).get("count", 0)
+        if log_count > 10:
+            recommendations.append("Review log retention policies due to increased logging")
+
+        if not recommendations:
+            recommendations.append("Standard deployment process recommended")
+
+        return recommendations
+
+    def _generate_checklist(self, deployment: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Generate a deployment checklist."""
+        checklist = [
+            {"item": "Review all code changes", "required": True},
+            {"item": "Run automated test suite", "required": True},
+            {"item": "Update CHANGELOG", "required": True},
+        ]
+
+        # Add conditional items based on deployment content
+        config_files = deployment.get("configuration_changes", [])
+        if config_files:
+            checklist.append(
+                {
+                    "item": f"Update configuration in all environments: {', '.join(config_files)}",
+                    "required": True,
+                }
+            )
+
+        infra_files = deployment.get("infrastructure_changes", [])
+        if infra_files:
+            checklist.append(
+                {"item": "Test infrastructure changes in staging", "required": True}
+            )
+            checklist.append(
+                {"item": "Schedule maintenance window if needed", "required": False}
+            )
+
+        log_count = deployment.get("new_logs_detected", {}).get("count", 0)
+        if log_count > 0:
+            checklist.append(
+                {"item": "Verify log aggregation is capturing new logs", "required": False}
+            )
+
+        error_count = deployment.get("error_handling_changes", {}).get("count", 0)
+        if error_count > 0:
+            checklist.append(
+                {"item": "Review and update alerting rules", "required": False}
+            )
+
+        checklist.extend(
+            [
+                {"item": "Deploy to staging environment", "required": True},
+                {"item": "Monitor staging for issues", "required": True},
+                {"item": "Create deployment backup/rollback plan", "required": True},
+                {"item": "Deploy to production", "required": True},
+                {"item": "Monitor production metrics", "required": True},
+            ]
+        )
+
+        return checklist

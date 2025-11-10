@@ -1,19 +1,25 @@
-"""CLI entry point for gitsummary."""
+"""
+CLI entry point using Typer.
 
+Provides the main command-line interface for gitsummary.
+"""
+
+import json
+import sys
 from pathlib import Path
 from typing import Optional
 
 import typer
-from git.exc import InvalidGitRepositoryError
+from typing_extensions import Annotated
 
 from gitsummary import __version__
 from gitsummary.analyzers import DeploymentAnalyzer
 from gitsummary.collector import ArtifactCollector
-from gitsummary.storage import Storage
+from gitsummary.storage import ArtifactStorage
 
 app = typer.Typer(
     name="gitsummary",
-    help="A Python CLI tool for collecting and analyzing Git change sets",
+    help="Collect and analyze Git change sets between tags.",
     add_completion=False,
 )
 
@@ -27,9 +33,10 @@ def version_callback(value: bool) -> None:
 
 @app.callback()
 def main(
-    version: Optional[bool] = typer.Option(
-        None, "--version", "-v", callback=version_callback, help="Show version and exit"
-    ),
+    version: Annotated[
+        Optional[bool],
+        typer.Option("--version", callback=version_callback, help="Show version and exit."),
+    ] = None,
 ) -> None:
     """gitsummary - Collect and analyze Git change sets."""
     pass
@@ -37,88 +44,263 @@ def main(
 
 @app.command()
 def collect(
-    tag_a: str = typer.Argument(..., help="Starting tag (exclusive)"),
-    tag_b: str = typer.Argument(..., help="Ending tag (inclusive)"),
-    tag: bool = typer.Option(True, "--tag/--no-tag", help="Treat arguments as tags (POC: always tags)"),
-    repo_path: str = typer.Option(".", "--repo", "-r", help="Path to Git repository root"),
+    tag_a: Annotated[str, typer.Argument(help="Starting tag (exclusive)")],
+    tag_b: Annotated[str, typer.Argument(help="Ending tag (inclusive)")],
+    repo_path: Annotated[
+        Optional[Path],
+        typer.Option("--repo", "-r", help="Path to Git repository (default: current directory)"),
+    ] = None,
 ) -> None:
-    """Collect Git data between two tags and generate an artifact.
+    """
+    Collect an artifact for changes between two tags.
 
-    Examples:
+    Extracts pure Git data (commits, diffs, metadata) between TAG_A and TAG_B
+    and generates a structured artifact stored in .gitsummary/
+
+    Example:
         gitsummary collect --tag v0.1.0 v0.2.0
-        gitsummary collect --tag 0.1 0.2 --repo /path/to/repo
     """
     try:
-        # Initialize collector
+        # Initialize collector and storage
         collector = ArtifactCollector(repo_path)
+        storage = ArtifactStorage(collector.git_repo.repo_path)
 
-        # Collect artifact
-        typer.echo(f"Collecting data between tags {tag_a} and {tag_b}...", err=True)
+        # Show what we're collecting
+        typer.echo(f"Collecting changes: {tag_a}..{tag_b}")
+
+        # Collect the artifact
         artifact = collector.collect(tag_a, tag_b)
 
-        # Save artifact
-        storage = Storage(collector.repo_root)
+        # Save to storage
         artifact_id = storage.save_artifact(artifact, tag_a, tag_b)
 
+        # Output result
         typer.echo(f"Artifact created: {artifact_id}")
-    except InvalidGitRepositoryError:
-        typer.echo(f"Error: '{repo_path}' is not a valid Git repository", err=True)
-        raise typer.Exit(1)
+
     except ValueError as e:
         typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
+        raise typer.Exit(code=1)
     except Exception as e:
         typer.echo(f"Unexpected error: {e}", err=True)
-        raise typer.Exit(1)
+        if "--debug" in sys.argv:
+            raise
+        raise typer.Exit(code=1)
 
 
 @app.command()
 def analyze(
-    artifact_id: str = typer.Argument(..., help="Artifact ID (full or prefix)"),
-    target: str = typer.Option(..., "--target", "-t", help="Facet to analyze (e.g., 'deployment')"),
-    format_type: str = typer.Option("json", "--format", "-f", help="Output format: 'json' or 'markdown'"),
-    repo_path: str = typer.Option(".", "--repo", "-r", help="Path to Git repository root"),
+    artifact_id: Annotated[str, typer.Argument(help="Artifact ID or prefix")],
+    target: Annotated[
+        str,
+        typer.Option("--target", "-t", help="Target facet to analyze (e.g., 'deployment')"),
+    ] = "deployment",
+    format: Annotated[
+        str,
+        typer.Option("--format", "-f", help="Output format: 'json' or 'text'"),
+    ] = "text",
+    repo_path: Annotated[
+        Optional[Path],
+        typer.Option("--repo", "-r", help="Path to Git repository (default: current directory)"),
+    ] = None,
 ) -> None:
-    """Analyze an artifact for a specific facet.
+    """
+    Analyze a stored artifact for a specific facet.
 
-    Examples:
+    Loads an artifact by ID (or prefix) and produces facet-specific analysis.
+    Currently supported facets: deployment
+
+    Example:
         gitsummary analyze 3fa4c021 --target deployment
-        gitsummary analyze 3fa4c021bc7e9f1f6c3d92da0d98cefd88b3fcd9 --target deployment --format markdown
     """
     try:
-        repo_root = Path(repo_path).resolve()
-        if not repo_root.exists():
-            typer.echo(f"Error: Repository path '{repo_path}' does not exist", err=True)
-            raise typer.Exit(1)
+        # Determine repo path
+        if repo_path is None:
+            repo_path = Path.cwd()
+
+        # Initialize storage
+        storage = ArtifactStorage(repo_path)
 
         # Load artifact
-        storage = Storage(repo_root)
         artifact = storage.load_artifact(artifact_id)
-
         if artifact is None:
             typer.echo(f"Error: Artifact '{artifact_id}' not found", err=True)
-            raise typer.Exit(1)
+            raise typer.Exit(code=1)
 
         # Select analyzer
-        analyzer = None
         if target == "deployment":
             analyzer = DeploymentAnalyzer()
         else:
-            typer.echo(f"Error: Unknown analyzer target '{target}'", err=True)
-            typer.echo("Available targets: deployment", err=True)
-            raise typer.Exit(1)
+            typer.echo(f"Error: Unknown target '{target}'", err=True)
+            typer.echo("Supported targets: deployment", err=True)
+            raise typer.Exit(code=1)
 
         # Run analysis
         analysis = analyzer.analyze(artifact)
-        output = analyzer.format_output(analysis, format_type)
 
-        # Print to stdout
-        typer.echo(output)
+        # Output results
+        if format == "json":
+            typer.echo(json.dumps(analysis, indent=2, ensure_ascii=False))
+        else:
+            # Text format (human-readable)
+            _print_analysis_text(analysis, analyzer.name)
+
+    except ValueError as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(code=1)
+    except Exception as e:
+        typer.echo(f"Unexpected error: {e}", err=True)
+        if "--debug" in sys.argv:
+            raise
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def list(
+    repo_path: Annotated[
+        Optional[Path],
+        typer.Option("--repo", "-r", help="Path to Git repository (default: current directory)"),
+    ] = None,
+) -> None:
+    """
+    List all stored artifacts.
+
+    Shows artifact IDs and creation timestamps.
+    """
+    try:
+        # Determine repo path
+        if repo_path is None:
+            repo_path = Path.cwd()
+
+        # Initialize storage
+        storage = ArtifactStorage(repo_path)
+
+        # List artifacts
+        artifacts = storage.list_artifacts()
+
+        if not artifacts:
+            typer.echo("No artifacts found.")
+            return
+
+        typer.echo(f"Found {len(artifacts)} artifact(s):\n")
+        for art in artifacts:
+            typer.echo(f"  {art['artifact_id'][:12]}  {art['created_at']}")
+
     except Exception as e:
         typer.echo(f"Error: {e}", err=True)
-        raise typer.Exit(1)
+        raise typer.Exit(code=1)
+
+
+def _print_analysis_text(analysis: dict, facet_name: str) -> None:
+    """
+    Print analysis in human-readable text format.
+
+    Args:
+        analysis: Analysis results dictionary.
+        facet_name: Name of the facet being analyzed.
+    """
+    typer.echo(f"\n{'=' * 70}")
+    typer.echo(f"  {facet_name.upper()} ANALYSIS")
+    typer.echo(f"{'=' * 70}\n")
+
+    # Summary
+    if "summary" in analysis:
+        typer.echo("SUMMARY")
+        typer.echo("-" * 70)
+        typer.echo(analysis["summary"])
+        typer.echo()
+
+    # Logging
+    if "logging" in analysis:
+        logging = analysis["logging"]
+        typer.echo("LOGGING")
+        typer.echo("-" * 70)
+        typer.echo(f"Impact: {logging['impact']}")
+        typer.echo(f"New log statements: {logging['new_log_statements']}")
+        if logging.get("affected_files"):
+            typer.echo(f"Affected files: {', '.join(logging['affected_files'][:5])}")
+        if logging.get("notes"):
+            typer.echo("Notes:")
+            for note in logging["notes"]:
+                typer.echo(f"  • {note}")
+        typer.echo()
+
+    # Error Handling
+    if "error_handling" in analysis:
+        error = analysis["error_handling"]
+        typer.echo("ERROR HANDLING")
+        typer.echo("-" * 70)
+        typer.echo(f"Impact: {error['impact']}")
+        typer.echo(f"Modified files: {error['modified_files']}")
+        if error.get("notes"):
+            typer.echo("Notes:")
+            for note in error["notes"]:
+                typer.echo(f"  • {note}")
+        typer.echo()
+
+    # Configuration
+    if "configuration" in analysis:
+        config = analysis["configuration"]
+        typer.echo("CONFIGURATION")
+        typer.echo("-" * 70)
+        typer.echo(f"Impact: {config['impact']}")
+        typer.echo(f"Files changed: {config['files_changed']}")
+        if config.get("files"):
+            typer.echo("Files:")
+            for f in config["files"]:
+                typer.echo(f"  • {f}")
+        if config.get("notes"):
+            typer.echo("Notes:")
+            for note in config["notes"]:
+                typer.echo(f"  • {note}")
+        typer.echo()
+
+    # Infrastructure
+    if "infrastructure" in analysis:
+        infra = analysis["infrastructure"]
+        typer.echo("INFRASTRUCTURE")
+        typer.echo("-" * 70)
+        typer.echo(f"Impact: {infra['impact']}")
+        typer.echo(f"Files changed: {infra['files_changed']}")
+        if infra.get("files"):
+            typer.echo("Files:")
+            for f in infra["files"]:
+                typer.echo(f"  • {f}")
+        if infra.get("notes"):
+            typer.echo("Notes:")
+            for note in infra["notes"]:
+                typer.echo(f"  • {note}")
+        typer.echo()
+
+    # Risks
+    if "risks" in analysis:
+        typer.echo("RISKS")
+        typer.echo("-" * 70)
+        for risk in analysis["risks"]:
+            level = risk["level"].upper()
+            category = risk["category"]
+            desc = risk["description"]
+            typer.echo(f"[{level}] {category}: {desc}")
+        typer.echo()
+
+    # Recommendations
+    if "recommendations" in analysis:
+        typer.echo("RECOMMENDATIONS")
+        typer.echo("-" * 70)
+        for i, rec in enumerate(analysis["recommendations"], 1):
+            typer.echo(f"{i}. {rec}")
+        typer.echo()
+
+    # Checklist
+    if "checklist" in analysis:
+        typer.echo("DEPLOYMENT CHECKLIST")
+        typer.echo("-" * 70)
+        for item in analysis["checklist"]:
+            required = "[REQUIRED]" if item["required"] else "[OPTIONAL]"
+            typer.echo(f"  {required} {item['item']}")
+        typer.echo()
+
+    typer.echo(f"{'=' * 70}\n")
 
 
 if __name__ == "__main__":
     app()
-
