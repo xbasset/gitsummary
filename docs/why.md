@@ -7,7 +7,7 @@ Goals
 	•	Support multiple analysis facets (e.g., deployment impact, maintainability, user-facing impact) through LLM-driven interpretation.
 	•	Make the code “speak for itself”: infer purpose, strategy, and consequences of changes directly from diffs, structure, and blame metadata.
 	•	Provide clean CLI usability integrated into developers’ normal workflow.
-	•	Allow future transition into a Git-native extension (refs/notes), with content-addressed artifacts behaving like Git objects.
+	•	Store artifacts in Git Notes from day one so metadata travels with commits; during early development we also emit the same artifacts as YAML files for easier inspection and debugging.
 
 ⸻
 
@@ -16,7 +16,7 @@ Motivations
 	•	PR metadata is unavailable or unreliable in many environments (self-hosted Git, no GitHub/GitLab API).
 	•	Release managers and developers struggle to understand what actually changed between releases.
 	•	Existing tools produce raw diffs, not semantic summaries or user-facing explanations.
-	•	Developers want an automated way to get:
+	•	Developers want an automated way to understand:
 	•	before/after behavior
 	•	impact on users
 	•	risk and maintainability signals
@@ -26,22 +26,26 @@ Motivations
 	•	technical debt tracking
 	•	audits
 	•	architecture documentation
-	•	LLMs can now infer meaning, intention, and structure without ASTs or heavy tooling, enabling a simple but powerful POC.
+	•	LLMs can infer meaning, intention, and structure without ASTs or heavy tooling, enabling a simple but powerful POC.
+	•	Bridge the gap between code changes and documentation so repositories stay self-explanatory.
+	•	Enable long-term, incremental knowledge accumulation directly inside Git.
+	•	Allow autonomous or semi-autonomous agents to operate safely and transparently.
+	•	Create a simple infrastructure that scales to many agents and repositories while keeping complexity low.
+	•	Improve development workflows without changing the Git commit model and lay foundations for AI-native repository practices.
 
 ⸻
 
-Target Users
-	•	Developers wanting to understand what happened between releases quickly.
-	•	Release managers needing semantic release notes or summaries.
-	•	Tech leads / architects needing to track architectural impact, debt, and ownership.
+Users
+	•	Developers (authors, reviewers, maintainers, new contributors) who need to understand what happened between releases quickly.
+	•	Release managers who require semantic release notes or summaries.
+	•	Tech leads / architects tracking architectural impact, debt, and ownership.
 	•	Ops/SRE teams wanting insight into logs, errors, and monitoring changes for deployment.
-	•	Teams without strict commit conventions (the majority), where the tool adds the most value.
-	•	Organizations using any Git hosting (GitHub, GitLab, Bitbucket, self-hosted), where API access cannot be assumed.
-	•	Projects missing documentation or onboarding material that describes how the system evolved.
-	•	CI/CD systems that could auto-generate summaries or reports for each release.
-
-
-
+	•	AI code assistants / agents (summarizers, reviewers, documentation writers, maintenance or refactoring bots) that operate on the repository.
+	•	Project tooling such as CI pipelines, documentation or release generators, and IDE extensions that consume or publish summaries automatically.
+	•	Teams without strict commit conventions, where automated semantic context adds the most value.
+	•	Organizations across any Git hosting (GitHub, GitLab, Bitbucket, self-hosted) where API access cannot be assumed.
+	•	Projects missing documentation or onboarding material describing how the system evolved.
+	•	CI/CD systems that want to auto-generate summaries or reports for each release.
 
 ⸻
 
@@ -64,35 +68,3 @@ Target Users
 	5.	Reduce the mental load for human developers (easier onboarding, clearer intent).
 	6.	Allow multiple tools, agents, or humans to operate consistently on the same repo.
 	7.	Keep complexity low so adoption is realistic.
-
-⸻
-
-👤 Users
-	1.	Human developers
-	•	Authors of commits
-	•	Reviewers
-	•	Maintainers
-	•	New contributors reading history
-	2.	AI code assistants / agents
-	•	Summarizers
-	•	Reviewers
-	•	Documentation writers
-	•	Maintenance or refactoring bots
-	3.	Project tooling
-	•	CI pipeline
-	•	Documentation generators
-	•	Release generators
-	•	IDE extensions
-
-⸻
-
-🎯 Motivations
-	1.	Bridge the gap between code changes and documentation.
-	2.	Make repositories self-explanatory to both humans and AI.
-	3.	Enable long-term, incremental knowledge accumulation directly inside Git.
-	4.	Allow autonomous or semi-autonomous agents to operate safely and transparently.
-	5.	Create a simple infrastructure that can scale to many agents and repos.
-	6.	Improve development workflows without changing the Git commit model.
-	7.	Lay foundations for AI-native repository practices.
-
-
