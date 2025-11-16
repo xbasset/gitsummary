@@ -40,3 +40,59 @@ Target Users
 	•	Projects missing documentation or onboarding material that describes how the system evolved.
 	•	CI/CD systems that could auto-generate summaries or reports for each release.
 
+
+
+
+⸻
+
+✅ Explicit Goals (you stated or clearly endorsed)
+	1.	Use Git Notes to store rich, structured metadata for each commit.
+	2.	Keep project documentation in sync with code automatically.
+	3.	Enable AI agents to understand, navigate, and maintain a codebase.
+	4.	Provide human-readable commit summaries and explanations.
+	5.	Create a simple, principled data model for commit-level metadata.
+	6.	Enable agent collaboration through shared metadata attached to commits.
+	7.	Design a small, clean artifact set (one ref, minimal schema).
+
+⸻
+
+🌱 Implicit Goals (inferred from discussions)
+	1.	Create a new standard or convention for AI-augmented repositories.
+	2.	Make the metadata durable, portable, and version-controlled.
+	3.	Provide an audit trail and provenance for AI-generated content.
+	4.	Enable semantic search, classification, and routing of changes.
+	5.	Reduce the mental load for human developers (easier onboarding, clearer intent).
+	6.	Allow multiple tools, agents, or humans to operate consistently on the same repo.
+	7.	Keep complexity low so adoption is realistic.
+
+⸻
+
+👤 Users
+	1.	Human developers
+	•	Authors of commits
+	•	Reviewers
+	•	Maintainers
+	•	New contributors reading history
+	2.	AI code assistants / agents
+	•	Summarizers
+	•	Reviewers
+	•	Documentation writers
+	•	Maintenance or refactoring bots
+	3.	Project tooling
+	•	CI pipeline
+	•	Documentation generators
+	•	Release generators
+	•	IDE extensions
+
+⸻
+
+🎯 Motivations
+	1.	Bridge the gap between code changes and documentation.
+	2.	Make repositories self-explanatory to both humans and AI.
+	3.	Enable long-term, incremental knowledge accumulation directly inside Git.
+	4.	Allow autonomous or semi-autonomous agents to operate safely and transparently.
+	5.	Create a simple infrastructure that can scale to many agents and repos.
+	6.	Improve development workflows without changing the Git commit model.
+	7.	Lay foundations for AI-native repository practices.
+
+
