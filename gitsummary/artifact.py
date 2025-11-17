@@ -61,7 +61,9 @@ def _section_intention(context: ArtifactContext) -> Dict[str, object]:
     }
 
 
-def _section_implementation(changes: Sequence[FileChange], diff_stat: DiffStat, diff_text: str) -> Dict[str, object]:
+def _section_implementation(
+    changes: Sequence[FileChange], diff_stat: DiffStat, diff_text: str
+) -> Dict[str, object]:
     files = _changed_paths(changes)
     extensions = Counter(Path(path).suffix for path in files if path)
     top_extensions = [ext or "<none>" for ext, _ in extensions.most_common(3)]
@@ -98,12 +100,25 @@ def _section_maintainability(diff_text: str) -> Dict[str, object]:
 
 def _section_deployment(diff_text: str) -> Dict[str, object]:
     configuration_files = [
-        line for line in diff_text.splitlines() if line.startswith("+++ b/") and any(
+        line
+        for line in diff_text.splitlines()
+        if line.startswith("+++ b/")
+        and any(
             line.endswith(candidate)
-            for candidate in ("Dockerfile", "docker-compose.yml", "helm.yaml", "values.yaml", "requirements.txt")
+            for candidate in (
+                "Dockerfile",
+                "docker-compose.yml",
+                "helm.yaml",
+                "values.yaml",
+                "requirements.txt",
+            )
         )
     ]
-    logging_changes = len(re.findall(r"logger|logging|console\.log|print\(", diff_text, flags=re.IGNORECASE))
+    logging_changes = len(
+        re.findall(
+            r"logger|logging|console\.log|print\(", diff_text, flags=re.IGNORECASE
+        )
+    )
     return {
         "configuration_touches": configuration_files,
         "logging_changes": logging_changes,
@@ -111,7 +126,9 @@ def _section_deployment(diff_text: str) -> Dict[str, object]:
 
 
 def _detect_symbols(diff_text: str) -> Dict[str, List[str]]:
-    pattern = re.compile(r"^[+-]\s*(def|class|function|module|interface)\s+([\w\.]+)", re.MULTILINE)
+    pattern = re.compile(
+        r"^[+-]\s*(def|class|function|module|interface)\s+([\w\.]+)", re.MULTILINE
+    )
     added: List[str] = []
     removed: List[str] = []
     for match in pattern.finditer(diff_text):

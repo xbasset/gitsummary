@@ -51,7 +51,9 @@ def _artifact_digest(data: Mapping[str, object]) -> str:
     return hashlib.sha256(packed).hexdigest()
 
 
-def save_artifact(layout: StorageLayout, artifact: Mapping[str, object]) -> Tuple[str, Path]:
+def save_artifact(
+    layout: StorageLayout, artifact: Mapping[str, object]
+) -> Tuple[str, Path]:
     """Persist ``artifact`` and return its identifier and file path."""
 
     enriched: Dict[str, object] = dict(artifact)
@@ -64,11 +66,15 @@ def save_artifact(layout: StorageLayout, artifact: Mapping[str, object]) -> Tupl
     artifact_id = _artifact_digest(enriched)
     layout.ensure()
     artifact_path = layout.artifact_path(artifact_id)
-    artifact_path.write_text(json.dumps(enriched, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    artifact_path.write_text(
+        json.dumps(enriched, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     return artifact_id, artifact_path
 
 
-def load_artifact(layout: StorageLayout, prefix: str) -> Tuple[str, Mapping[str, object]]:
+def load_artifact(
+    layout: StorageLayout, prefix: str
+) -> Tuple[str, Mapping[str, object]]:
     """Load an artifact by ``prefix`` (similar to git abbreviated SHAs)."""
 
     layout.ensure()
@@ -81,7 +87,9 @@ def load_artifact(layout: StorageLayout, prefix: str) -> Tuple[str, Mapping[str,
         raise FileNotFoundError(f"No artifact matching prefix '{prefix}'")
     if len(matches) > 1:
         raise FileExistsError(
-            "Multiple artifacts match prefix '{prefix}'. Please provide a longer identifier.".format(prefix=prefix)
+            "Multiple artifacts match prefix '{prefix}'. Please provide a longer identifier.".format(
+                prefix=prefix
+            )
         )
     artifact_id, artifact_path = matches.popitem()
     data = json.loads(artifact_path.read_text(encoding="utf-8"))

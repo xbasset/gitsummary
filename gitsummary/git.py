@@ -78,7 +78,9 @@ def repository_root() -> Path:
 def list_commits(range_spec: str) -> List[Commit]:
     """Return commits for ``range_spec`` ordered from newest to oldest."""
 
-    output = run(["log", "--format=%H\x1f%an\x1f%ad\x1f%s", "--date=iso-strict", range_spec])
+    output = run(
+        ["log", "--format=%H\x1f%an\x1f%ad\x1f%s", "--date=iso-strict", range_spec]
+    )
     commits: List[Commit] = []
     for line in output.strip().splitlines():
         if not line:

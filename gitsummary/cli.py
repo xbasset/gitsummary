@@ -42,12 +42,18 @@ def version() -> None:
 
 @app.command()
 def collect(
-    tag: List[str] = typer.Option(..., "--tag", min=2, max=2, help="Two git tags describing the range."),
+    tag: List[str] = typer.Option(
+        ..., "--tag", min=2, max=2, help="Two git tags describing the range."
+    ),
 ) -> None:
     """Collect git metadata for a tag range and persist an artifact."""
 
     if len(tag) != 2:
-        typer.secho("Please provide exactly two tags via --tag <A> <B>.", err=True, fg=typer.colors.RED)
+        typer.secho(
+            "Please provide exactly two tags via --tag <A> --tag <B>.",
+            err=True,
+            fg=typer.colors.RED,
+        )
         raise typer.Exit(code=1)
 
     try:
@@ -94,7 +100,11 @@ def analyze(
     targets = available_targets()
     if target not in targets:
         valid = ", ".join(sorted(targets))
-        typer.secho(f"Unknown target '{target}'. Available: {valid}", err=True, fg=typer.colors.RED)
+        typer.secho(
+            f"Unknown target '{target}'. Available: {valid}",
+            err=True,
+            fg=typer.colors.RED,
+        )
         raise typer.Exit(code=1)
 
     output = run_analyzer(target, artifact)
