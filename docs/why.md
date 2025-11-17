@@ -1,70 +1,103 @@
-gitsummary — Goals, Motivations & Target Users
+# gitsummary — Goals, Motivations & Target Users
 
-Goals
-	•	Automatically extract a structured, semantic understanding of what changed between two releases or commit ranges using only Git data.
-	•	Capture developer intention behind changes—even when commit messages are poor or inconsistent.
-	•	Produce a durable, reusable artifact representing the change set for documentation, QA, deployment, release management, and future introspection.
-	•	Support multiple analysis facets (e.g., deployment impact, maintainability, user-facing impact) through LLM-driven interpretation.
-	•	Make the code “speak for itself”: infer purpose, strategy, and consequences of changes directly from diffs, structure, and blame metadata.
-	•	Provide clean CLI usability integrated into developers’ normal workflow.
-	•	Store artifacts in Git Notes from day one so metadata travels with commits; during early development we also emit the same artifacts as YAML files for easier inspection and debugging.
 
-⸻
+## 🚀 Goals
 
-Motivations
-	•	Teams frequently have poor commit messages (“fix”, “update”, “push changes”).
-	•	PR metadata is unavailable or unreliable in many environments (self-hosted Git, no GitHub/GitLab API).
-	•	Release managers and developers struggle to understand what actually changed between releases.
-	•	Existing tools produce raw diffs, not semantic summaries or user-facing explanations.
-	•	Developers want an automated way to understand:
-	•	before/after behavior
-	•	impact on users
-	•	risk and maintainability signals
-	•	deployment and monitoring implications
-	•	Organizations need project-level metadata generated automatically from code history for:
-	•	changelogs
-	•	technical debt tracking
-	•	audits
-	•	architecture documentation
-	•	LLMs can infer meaning, intention, and structure without ASTs or heavy tooling, enabling a simple but powerful POC.
-	•	Bridge the gap between code changes and documentation so repositories stay self-explanatory.
-	•	Enable long-term, incremental knowledge accumulation directly inside Git.
-	•	Allow autonomous or semi-autonomous agents to operate safely and transparently.
-	•	Create a simple infrastructure that scales to many agents and repositories while keeping complexity low.
-	•	Improve development workflows without changing the Git commit model and lay foundations for AI-native repository practices.
+1. **Enable developers and AI agents to understand, navigate, and maintain a codebase**
+   - Provide semantic understanding directly from Git data.
+   - Make the repository self‑descriptive and navigable.
 
-⸻
+2. **Automatically extract structured, durable metadata for every commit**
+   - Use Git Notes as the canonical store so metadata travels with commits.
+   - Produce machine‑readable and human‑readable artifacts.
 
-Users
-	•	Developers (authors, reviewers, maintainers, new contributors) who need to understand what happened between releases quickly.
-	•	Release managers who require semantic release notes or summaries.
-	•	Tech leads / architects tracking architectural impact, debt, and ownership.
-	•	Ops/SRE teams wanting insight into logs, errors, and monitoring changes for deployment.
-	•	AI code assistants / agents (summarizers, reviewers, documentation writers, maintenance or refactoring bots) that operate on the repository.
-	•	Project tooling such as CI pipelines, documentation or release generators, and IDE extensions that consume or publish summaries automatically.
-	•	Teams without strict commit conventions, where automated semantic context adds the most value.
-	•	Organizations across any Git hosting (GitHub, GitLab, Bitbucket, self-hosted) where API access cannot be assumed.
-	•	Projects missing documentation or onboarding material describing how the system evolved.
-	•	CI/CD systems that want to auto-generate summaries or reports for each release.
+3. **Make code “speak for itself”**
+   - Infer purpose, intent, strategy, and consequences directly from diffs,
+     structure, and blame metadata.
+   - Reduce dependency on commit message quality.
 
-⸻
+4. **Generate reusable artifacts for documentation, release management, QA, and tooling**
+   - Change summaries become a permanent, queryable asset.
 
-✅ Explicit Goals (you stated or clearly endorsed)
-	1.	Use Git Notes to store rich, structured metadata for each commit.
-	2.	Keep project documentation in sync with code automatically.
-	3.	Enable AI agents to understand, navigate, and maintain a codebase.
-	4.	Provide human-readable commit summaries and explanations.
-	5.	Create a simple, principled data model for commit-level metadata.
-	6.	Enable agent collaboration through shared metadata attached to commits.
-	7.	Design a small, clean artifact set (one ref, minimal schema).
+5. **Support multiple semantic analysis dimensions**
+   - Deployment impact  
+   - Maintainability  
+   - Production monitoring implications
+   - User‑facing behavior  
+   - Architectural impact  
+   - Risk profiles
 
-⸻
+6. **Keep project documentation continuously in sync with code**
+   - Reduce manual documentation drift.
+   - Enable reliable automated changelogs.
 
-🌱 Implicit Goals (inferred from discussions)
-	1.	Create a new standard or convention for AI-augmented repositories.
-	2.	Make the metadata durable, portable, and version-controlled.
-	3.	Provide an audit trail and provenance for AI-generated content.
-	4.	Enable semantic search, classification, and routing of changes.
-	5.	Reduce the mental load for human developers (easier onboarding, clearer intent).
-	6.	Allow multiple tools, agents, or humans to operate consistently on the same repo.
-	7.	Keep complexity low so adoption is realistic.
+7. **Provide clean CLI usability integrated with normal Git workflows**
+   - No changes to Git’s commit model.
+   - Works across all hosting environments.
+
+8. **Enable agent collaboration through shared commit-level metadata**
+   - Common schema and shared context across agents and tools.
+
+---
+
+## 💡 Motivations
+
+- Commit messages are often poor (“fix”, “update”, “wip”).
+- PR metadata is unavailable or inconsistent across hosts.
+- Developers and release managers lack clear insight into what *actually changed*.
+- Existing tools expose raw diffs, not meaning or intent.
+- Teams need automated insight into:
+  - before/after behavior  
+  - user impact  
+  - risk & maintainability  
+  - deployment/monitoring implications  
+- Organizations need code‑derived metadata for:
+  - changelogs  
+  - audits  
+  - technical debt tracking  
+  - architecture documentation  
+- LLMs unlock semantic interpretation without heavy AST/tooling.
+- Repositories should remain self‑explanatory over time.
+- Multiple agents should share context safely and transparently.
+- Simplicity is essential for wide adoption.
+
+---
+
+## 👥 Target Users
+
+- **Developers** who need quick understanding of changes between releases.
+- **Release managers** needing semantic release notes.
+- **Tech leads & architects** tracking structural or architectural impact.
+- **Ops/SRE teams** wanting visibility into deployment‑relevant changes.
+- **AI code assistants & agents** (summarizers, reviewers, documentation bots).
+- **Automation tooling** (CI, documentation generators, IDE extensions).
+- **Teams with inconsistent commit practices** that benefit from semantic layers.
+- **Organizations on any Git hosting**, with or without API access.
+- **Projects lacking historical documentation or onboarding materials.**
+- **CI/CD systems** generating automated summaries per release.
+
+---
+
+## ✅ Features
+
+1. Use Git Notes for rich metadata storage.
+2. Keep documentation aligned with code automatically.
+3. Enable AI agents to reason about the codebase.
+4. Produce human‑readable explanations of changes.
+5. Provide a clean, principled commit‑metadata schema.
+6. Allow agent collaboration through shared metadata.
+7. Maintain a minimal, stable artifact set.
+
+---
+
+## 🌱 Value
+
+1. Establish a standard for AI‑augmented repositories.
+2. Ensure durability, portability, and version control of metadata.
+3. Provide provenance and auditing for AI‑generated content.
+4. Enable semantic search, routing, and classification of changes.
+5. Reduce mental overhead and improve onboarding.
+6. Support consistent operation across tools, agents, and humans.
+7. Maintain simplicity to maximize adoptability.
+
+---
