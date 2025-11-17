@@ -1,7 +1,3 @@
-Here’s a sharp, story-driven one-pager you can use as the project announcement:
-
----
-
 # **gitsummary — Let Your Codebase Explain Itself**
 
 Every developer knows the feeling: you open a repo you haven't touched in months—or one you’ve never seen. The commit messages are vague (“fix”, “update”, “wip”), the PR history is scattered across hosting platforms, and the diffs tell you *what* changed but never *why*. Release managers hunt for signal in a sea of noise. AI agents try to help but lack durable context. Documentation drifts. And the truth of the system hides inside thousands of commits waiting to be rediscovered.
