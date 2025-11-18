@@ -38,3 +38,4 @@
 - Use the `docs/TODO.md` file to guide the development process.
 - Create / update the status in docs/current_development_status.md
 - Create / update a versioned notebook in Markdown in `workdir/`. This will be the place where you will write the steps we've decided, the design choices, etc. Each notebook represents a step in the development process. It's versioned so we can track the progress and decisions. Once a major milestone is reached, we will create a new notebook for the next milestone.
+- create a branch for each milestone, and prepare the merge request for each branch when the milestone is reached. We will review the notebook and the code, and merge the branch into main.
