@@ -1,17 +1,14 @@
 # Project Summary — Key Insights (Condensed & Structured)
 
-1. Core Vision
+1. Core Vision (Release Manager Focus)
 
-You want to build a tool that can extract meaning from a repository’s evolution between two points in time (commits, branches, tags) and produce structured, semantic artifacts that describe:
+You are building a tool for **Release Managers** and teams who need to extract meaning from a repository’s evolution between two points in time (commits, branches, tags). The primary goal for v0.1 is to produce structured, semantic release notes and internal documentation that describe:
 	•	Developer intention
 	•	Implementation decisions
-	•	User-visible impact
+	•	User-visible impact (Risk/Breaking Changes)
 	•	Before/After behavior
-	•	Maintenance & technical-debt implications
-	•	Deployment/operational changes (logs, errors, config, monitoring)
 
-These artifacts become durable metadata living alongside the code, enabling
-future AI agents, developers, operators, and automation tools to understand the project’s evolution.
+These artifacts become durable metadata living alongside the code.
 
 ⸻
 
@@ -30,54 +27,32 @@ This means all semantic inference must come from:
 	•	Code changes
 	•	Repository conventions
 
+**Note on AI/LLM:** We rely on current generation LLMs (large context, reasoning) to bridge the gap between raw diffs and semantic intent ("The Magic Wand").
+
 ⸻
 
 3. Artifact Concept
 
 The “artifact” is a structured, semantic representation of a change range.
-It is composed of multiple facets:
+It is composed of multiple facets. For v0.1, we prioritize:
 
 (a) Context
 	•	Commit range, merge points, tags
 	•	Authors & timestamps
 	•	Summarized commit messages
-	•	Branch topology
 
 (b) Intention (Inferred)
 	•	Why the change exists
 	•	Problem solved
-	•	Developer’s implied rationale
 
-(c) Implementation
-	•	Files changed
-	•	Code patterns and structural changes
-	•	Dependency diffs
-	•	diff-derived insights
-	•	Complexity, churn, refactoring signals
-
-(d) Impact
+(c) Impact (Risk & Breaking Changes)
 	•	User-visible behavior change
-	•	Before/after description
-	•	API/UX/behavioral changes
 	•	Compatibility or migration risks
 
-(e) Maintainability
-	•	Technical debt added or removed
-	•	Code cleanup signals
-	•	Test coverage delta
-	•	Architectural implications
+(d) Meta
+	•	Artifact ID, Schema version, Confidence
 
-(f) Deployment Facet
-	•	New logs, error messages, or monitoring signals
-	•	Infrastructure or config changes
-	•	New observability surfaces (metrics, handlers, tracing)
-	•	Suggested integration steps for SRE/ops
-
-(g) Meta
-	•	Artifact ID
-	•	Confidence
-	•	Evidence references
-	•	Schema version
+*(Other facets like Deployment, Maintainability, and SRE specific details are deferred to future versions).*
 
 ⸻
 
@@ -92,43 +67,18 @@ You want storage to be Git-native and to work out of the box using Git Notes, so
 The core idea:
 	•	Use the Git Notes mechanism as the primary integration point.
 	•	Define a clear, stable data model for the artifacts that lives in notes.
-	•	Let tools and agents agree on this schema so they can read/write artifacts consistently.
-
-This is less about inventing a custom storage layout and more about defining a standard, durable schema for semantic artifacts attached to commits, tags, and ranges.
-
-Design inspiration:
-	•	Think of how Google’s `git appraise` uses Git primitives to implement a full code-review workflow.
-	•	Similarly, `gitsummary` should use Git Notes to implement a full semantic-artifact workflow.
-
-Long-term direction:
-	•	`gitsummary` becomes the de facto standard for artifacts built from code history.
-	•	Those artifacts encode the various goals described in the README (intent, impact, deployment, maintainability, etc.).
-	•	Other tools (CI, documentation generators, IDE plugins, AI agents) simply consume and extend the same Git-notes-based schema.
 
 ⸻
 
-5. CLI Design
+5. CLI Design (Two-Sided)
 
-You want a developer-facing CLI built in Python:
+(a) Builder (Database Builder):
+	`gitsummary collect --tag v0.1 --tag v0.2`
+	→ Runs on commits/ranges to build the semantic database (Artifacts) using LLM inference to capture "The Why" (Intent).
 
-Collection:
-
-gitsummary collect --tag 0.1 --tag 0.2
-
-→ Produces a raw artifact based purely on Git data.
-
-Analysis:
-
-gitsummary analyze <ARTIFACT_ID> --target deployment
-
-→ Reads stored artifact and evaluates a specific facet (deployment, user impact, maintainability…).
-
-Interactive Mode:
-
-The analyzer can ask questions to clarify inferred intentions when needed:
-
-gitsummary analyze <ID> --interactive
-
+(b) Generator (Report Generator):
+	`gitsummary analyze <ARTIFACT_ID> --target release-notes`
+	→ Consumes the database to generate human-readable reports (Release Notes, Impact Analysis).
 
 ⸻
 
@@ -136,26 +86,17 @@ gitsummary analyze <ID> --interactive
 
 You see this project as:
 	•	A future Git-native extension
-	•	A semantic substrate for automated documentation
-	•	A knowledge graph of a repo’s evolution
 	•	A stable base for AI agents cooperating across commits and time
-	•	A cross-cutting tool for:
-	•	release management
-	•	architectural insights
-	•	technical debt tracking
-	•	onboarding support
-	•	semantic search
+	•	A cross-cutting tool for release management
 
-The artifact is envisioned as a durable semantic twin of each change.
+*See `docs/future_plans.md` for extended scope regarding Developers, SREs, and Agents.*
 
 ⸻
 
 7. Values & Philosophy
 
-Key philosophical choices extracted from your comments:
+Key philosophical choices:
 	•	Prefer semantic understanding over raw diffs
 	•	Favor portability and minimal dependencies
 	•	Emphasize project durability over ephemeral tooling
-	•	Aim for a design that could become a Git feature one day
-	•	Invest heavily in artifact schema design before coding
-	•	Prioritize developer experience (simple CLI, clean outputs)
+	•	Invest heavily in artifact schema design (this is the hard part).
