@@ -33,3 +33,7 @@
 ## Artifact Storage Notes
 - Use `StorageLayout` helpers instead of manual paths; `save_artifact` stamps schema and tool versions automatically.
 - When altering artifact shape, bump `SCHEMA_VERSION`, regenerate supporting docs, and describe migration steps in `docs/spec.md`.
+
+## Development Plan
+- Use the `docs/TODO.md` file to guide the development process.
+- Create / update the status in docs/current_development_status.md
