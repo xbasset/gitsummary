@@ -36,6 +36,16 @@ def _deployment_analyzer(artifact: Mapping[str, object]) -> str:
     return _format_json(artifact.get("deployment", {}))
 
 
+def _release_notes_analyzer(artifact: Mapping[str, object]) -> str:
+    """Composite analyzer that extracts release-relevant sections."""
+    report = {
+        "context": artifact.get("context", {}),
+        "intention": artifact.get("intention", {}),
+        "impact": artifact.get("impact", {}),
+    }
+    return _format_json(report)
+
+
 _ANALYZERS: Dict[str, Analyzer] = {
     "context": _context_analyzer,
     "intention": _intention_analyzer,
@@ -43,6 +53,7 @@ _ANALYZERS: Dict[str, Analyzer] = {
     "impact": _impact_analyzer,
     "maintainability": _maintainability_analyzer,
     "deployment": _deployment_analyzer,
+    "release-notes": _release_notes_analyzer,
 }
 
 
