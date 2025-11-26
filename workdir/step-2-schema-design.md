@@ -22,7 +22,6 @@ Define the data model for the "Artifact" that represents the semantic understand
 - **Behavior:** `behavior_before` vs `behavior_after` (Crucial for release notes)
 - **Impact:** `impact_scope` (Public API, Internal, etc.), `is_breaking`, `risk_explanation`
 - **Implementation:** `technical_highlights` (Key decisions found in diff)
-- **Meta:** `confidence_score`
 
 ### 3. Data vs Procedures
 **Decision:** **Store Artifacts as Data**.

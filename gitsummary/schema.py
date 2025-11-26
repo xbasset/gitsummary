@@ -1,7 +1,8 @@
 """
 Defines the core data models for gitsummary artifacts.
-These models represent the "semantic understanding" of a single commit,
-extracted by an AI agent.
+These models represent the "semantic understanding" of a single commit.
+NOTE: While defined here as Pydantic models (JSON Schema), these artifacts
+are serialized to YAML for storage in Git Notes to improve readability.
 """
 
 from enum import Enum

@@ -44,15 +44,15 @@ Each step builds on the previous one and has clear outputs that feed the next ph
 **Goal:** Decide exactly how artifacts are stored in Git Notes so they are durable, portable, and easy to query.
 
 **Tasks:**
-- [ ] Choose one or more notes namespaces (e.g. `refs/notes/artifacts`).
-- [ ] Decide what object(s) notes attach to:
+- [x] Choose one or more notes namespaces (e.g. `refs/notes/artifacts`).
+- [x] Decide what object(s) notes attach to:
   - Individual commits
   - Tags
   - Synthetic “range” objects (e.g. pseudo‑IDs for commit ranges)
-- [ ] Define how to reference a **change range** artifact (e.g. store range metadata in the note attached to the tip commit, or via a separate index structure).
-- [ ] Decide on serialization format (likely JSON, UTF‑8, untouched by Git filters).
-- [ ] Design a minimal index/lookup strategy where needed (e.g. map artifact IDs to commit hashes).
-- [ ] Document layout & conventions in `docs/storage_layout.md`.
+- [x] Define how to reference a **change range** artifact (e.g. store range metadata in the note attached to the tip commit, or via a separate index structure).
+- [x] Decide on serialization format (likely JSON, UTF‑8, untouched by Git filters).
+- [x] Design a minimal index/lookup strategy where needed (e.g. map artifact IDs to commit hashes).
+- [x] Document layout & conventions in `docs/storage_layout.md`.
 
 **Output / Exit criteria:**
 - A clear mapping between `ArtifactID` ⇄ Git objects ⇄ Git Notes namespace, with examples.
