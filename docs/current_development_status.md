@@ -17,7 +17,15 @@
   - Validated schema serialization.
 - **Reference:** `workdir/step-2-schema-design.md`.
 
-## Step 3: Design Git Notes Storage Layout (Next)
-- **Goal:** Decide how to store these JSON artifacts in Git Notes.
-- **Inputs:** The `CommitArtifact` schema.
-- **Deliverable:** A storage specification and implementation plan.
+## Step 3: Design Git Notes Storage Layout (Complete)
+- **Status:** Done.
+- **Outcome:**
+  - Defined `refs/notes/intent` namespace.
+  - Specified YAML storage format.
+  - Created `docs/storage_layout.md`.
+- **Reference:** `workdir/step-3-storage-layout.md`.
+
+## Step 4: CLI Surface Design (Next)
+- **Goal:** Define the user-facing commands (`collect`, `analyze`, `show`).
+- **Inputs:** The storage layout and artifact schema.
+- **Deliverable:** A CLI specification in `docs/cli_design.md`.
