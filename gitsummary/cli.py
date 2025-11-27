@@ -7,7 +7,6 @@ This CLI implements the two-phase model:
 
 from __future__ import annotations
 
-import sys
 from typing import List, Optional
 
 import typer
@@ -19,10 +18,7 @@ from .git import (
     CommitInfo,
     GitCommandError,
     get_commit_diff,
-    get_commit_info,
     list_commits_in_range,
-    repository_root,
-    resolve_revision,
 )
 from .schema import CommitArtifact
 from .storage import (
@@ -48,7 +44,9 @@ app.add_typer(generate_app, name="generate")
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def _format_artifact_human(artifact: CommitArtifact, commit: Optional[CommitInfo] = None) -> str:
+def _format_artifact_human(
+    artifact: CommitArtifact, commit: Optional[CommitInfo] = None
+) -> str:
     """Format a CommitArtifact for human-readable display."""
     short_sha = artifact.commit_hash[:7]
     lines = [
@@ -63,10 +61,18 @@ def _format_artifact_human(artifact: CommitArtifact, commit: Optional[CommitInfo
     if artifact.behavior_before or artifact.behavior_after:
         lines.append("│" + " " * 52 + "│")
         if artifact.behavior_before:
-            before_text = artifact.behavior_before[:45] + "..." if len(artifact.behavior_before) > 45 else artifact.behavior_before
+            before_text = (
+                artifact.behavior_before[:45] + "..."
+                if len(artifact.behavior_before) > 45
+                else artifact.behavior_before
+            )
             lines.append(f"│ Before: {before_text:<43} │")
         if artifact.behavior_after:
-            after_text = artifact.behavior_after[:45] + "..." if len(artifact.behavior_after) > 45 else artifact.behavior_after
+            after_text = (
+                artifact.behavior_after[:45] + "..."
+                if len(artifact.behavior_after) > 45
+                else artifact.behavior_after
+            )
             lines.append(f"│ After:  {after_text:<43} │")
 
     if artifact.technical_highlights:
@@ -91,7 +97,9 @@ def _format_artifact_yaml(artifact: CommitArtifact) -> str:
     """Format a CommitArtifact as YAML."""
     # Use mode='json' to get proper enum serialization
     data = artifact.model_dump(mode="json")
-    return yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    return yaml.dump(
+        data, default_flow_style=False, allow_unicode=True, sort_keys=False
+    )
 
 
 def _format_artifact_json(artifact: CommitArtifact) -> str:
@@ -107,7 +115,9 @@ def _format_artifact_json(artifact: CommitArtifact) -> str:
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
-    version: bool = typer.Option(False, "--version", "-V", help="Show version and exit."),
+    version: bool = typer.Option(
+        False, "--version", "-V", help="Show version and exit."
+    ),
 ) -> None:
     """Summarize git changes into durable semantic artifacts."""
     if version:
@@ -138,7 +148,9 @@ def analyze(
         False, "--force", "-f", help="Overwrite existing artifacts."
     ),
     reanalyze: bool = typer.Option(
-        False, "--reanalyze-existing", help="Re-analyze commits with existing artifacts."
+        False,
+        "--reanalyze-existing",
+        help="Re-analyze commits with existing artifacts.",
     ),
     output_json: bool = typer.Option(
         False, "--json", help="Output as JSON (implies --dry-run)."
@@ -164,7 +176,9 @@ def analyze(
         raise typer.Exit(code=2) from exc
 
     if not commits:
-        typer.secho("No commits found in the specified range.", err=True, fg=typer.colors.YELLOW)
+        typer.secho(
+            "No commits found in the specified range.", err=True, fg=typer.colors.YELLOW
+        )
         raise typer.Exit(code=1)
 
     if not dry_run:
@@ -206,9 +220,15 @@ def analyze(
 
         except Exception as exc:
             if verbose:
-                typer.secho(f"  ✗ {commit.short_sha} Error: {exc}", err=True, fg=typer.colors.RED)
+                typer.secho(
+                    f"  ✗ {commit.short_sha} Error: {exc}",
+                    err=True,
+                    fg=typer.colors.RED,
+                )
             else:
-                typer.secho(f"  ✗ {commit.short_sha} (error)", err=True, fg=typer.colors.RED)
+                typer.secho(
+                    f"  ✗ {commit.short_sha} (error)", err=True, fg=typer.colors.RED
+                )
             errors += 1
 
     if not dry_run:
@@ -256,7 +276,9 @@ def show(
             if brief:
                 typer.echo(f"{commit.short_sha} [not analyzed]")
             else:
-                typer.secho(f"No artifact for commit {commit.short_sha}", fg=typer.colors.YELLOW)
+                typer.secho(
+                    f"No artifact for commit {commit.short_sha}", fg=typer.colors.YELLOW
+                )
             missing += 1
             continue
 
@@ -297,9 +319,7 @@ def list_cmd(
     missing_only: bool = typer.Option(
         False, "--missing", help="Only show commits without artifacts."
     ),
-    count_only: bool = typer.Option(
-        False, "--count", help="Show only counts."
-    ),
+    count_only: bool = typer.Option(False, "--count", help="Show only counts."),
     output_json: bool = typer.Option(False, "--json", help="Output as JSON."),
 ) -> None:
     """List commits and their analysis status."""
@@ -323,11 +343,16 @@ def list_cmd(
     if count_only:
         if output_json:
             import json
-            typer.echo(json.dumps({
-                "total": len(commits),
-                "analyzed": analyzed_count,
-                "missing": missing_count,
-            }))
+
+            typer.echo(
+                json.dumps(
+                    {
+                        "total": len(commits),
+                        "analyzed": analyzed_count,
+                        "missing": missing_count,
+                    }
+                )
+            )
         else:
             typer.echo(f"Total: {len(commits)}")
             typer.echo(f"Analyzed: {analyzed_count}")
@@ -335,7 +360,9 @@ def list_cmd(
         return
 
     if not output_json:
-        typer.echo(f"Commits in {revision_range} ({len(commits)} total, {analyzed_count} analyzed)")
+        typer.echo(
+            f"Commits in {revision_range} ({len(commits)} total, {analyzed_count} analyzed)"
+        )
         typer.echo("")
 
     results = []
@@ -348,18 +375,21 @@ def list_cmd(
             continue
 
         if output_json:
-            results.append({
-                "sha": commit.sha,
-                "short_sha": commit.short_sha,
-                "summary": commit.summary,
-                "analyzed": is_analyzed,
-            })
+            results.append(
+                {
+                    "sha": commit.sha,
+                    "short_sha": commit.short_sha,
+                    "summary": commit.summary,
+                    "analyzed": is_analyzed,
+                }
+            )
         else:
             status = "✓" if is_analyzed else "○"
             typer.echo(f"{status} {commit.short_sha} {commit.summary[:60]}")
 
     if output_json:
         import json
+
         typer.echo(json.dumps(results, indent=2))
 
 
@@ -417,10 +447,15 @@ def generate_changelog(
     # Generate output
     if output_format == "json":
         import json
+
         result = {
             "range": revision_range,
             "features": [
-                {"sha": c.short_sha, "summary": a.intent_summary, "breaking": a.is_breaking}
+                {
+                    "sha": c.short_sha,
+                    "summary": a.intent_summary,
+                    "breaking": a.is_breaking,
+                }
                 for c, a in by_category.get(ChangeCategory.FEATURE, [])
             ],
             "fixes": [
@@ -428,8 +463,17 @@ def generate_changelog(
                 for c, a in by_category.get(ChangeCategory.FIX, [])
             ],
             "other": [
-                {"sha": c.short_sha, "summary": a.intent_summary, "category": a.category.value}
-                for cat in [ChangeCategory.REFACTOR, ChangeCategory.CHORE, ChangeCategory.PERFORMANCE, ChangeCategory.SECURITY]
+                {
+                    "sha": c.short_sha,
+                    "summary": a.intent_summary,
+                    "category": a.category.value,
+                }
+                for cat in [
+                    ChangeCategory.REFACTOR,
+                    ChangeCategory.CHORE,
+                    ChangeCategory.PERFORMANCE,
+                    ChangeCategory.SECURITY,
+                ]
                 for c, a in by_category.get(cat, [])
             ],
         }
@@ -444,7 +488,9 @@ def generate_changelog(
             lines.append("## Features")
             for commit, artifact in features:
                 breaking = " **[BREAKING]**" if artifact.is_breaking else ""
-                lines.append(f"- **{artifact.intent_summary}** ({commit.short_sha}){breaking}")
+                lines.append(
+                    f"- **{artifact.intent_summary}** ({commit.short_sha}){breaking}"
+                )
                 if artifact.behavior_after:
                     lines.append(f"  {artifact.behavior_after}")
             lines.append("")
@@ -484,7 +530,9 @@ def generate_changelog(
             ChangeCategory.PERFORMANCE,
             ChangeCategory.CHORE,
         ]
-        other = [(c, a) for cat in other_categories for c, a in by_category.get(cat, [])]
+        other = [
+            (c, a) for cat in other_categories for c, a in by_category.get(cat, [])
+        ]
         if other:
             lines.append("## Other")
             for commit, artifact in other:
@@ -548,7 +596,11 @@ def generate_release_notes(
         # Determine if user-facing
         if artifact.impact_scope in (ImpactScope.PUBLIC_API, ImpactScope.CONFIG):
             user_facing.append((commit, artifact))
-        elif artifact.category in (ChangeCategory.FEATURE, ChangeCategory.FIX, ChangeCategory.SECURITY):
+        elif artifact.category in (
+            ChangeCategory.FEATURE,
+            ChangeCategory.FIX,
+            ChangeCategory.SECURITY,
+        ):
             if artifact.impact_scope != ImpactScope.TEST:
                 user_facing.append((commit, artifact))
         else:
@@ -575,7 +627,9 @@ def generate_release_notes(
                 lines.append(artifact.behavior_after)
             if artifact.is_breaking:
                 lines.append("")
-                lines.append(f"⚠️ **Breaking Change**: {artifact.behavior_before or 'See migration guide.'}")
+                lines.append(
+                    f"⚠️ **Breaking Change**: {artifact.behavior_before or 'See migration guide.'}"
+                )
             lines.append("")
 
     # Summary stats
@@ -639,6 +693,7 @@ def generate_impact(
 
     if output_format == "json":
         import json
+
         result = {
             "range": revision_range,
             "total_commits": len(commits),

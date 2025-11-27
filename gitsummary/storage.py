@@ -60,7 +60,9 @@ def artifact_to_yaml(artifact: CommitArtifact) -> str:
     # Add metadata
     data["schema_version"] = SCHEMA_VERSION
     data["tool_version"] = __version__
-    return yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    return yaml.dump(
+        data, default_flow_style=False, allow_unicode=True, sort_keys=False
+    )
 
 
 def yaml_to_artifact(yaml_content: str) -> CommitArtifact:

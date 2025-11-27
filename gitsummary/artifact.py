@@ -31,7 +31,9 @@ __all__ = [
 LLMProvider = Callable[[CommitInfo, str], Optional[Dict[str, object]]]
 
 
-def _default_llm_provider(commit: CommitInfo, diff_patch: str) -> Optional[Dict[str, object]]:
+def _default_llm_provider(
+    commit: CommitInfo, diff_patch: str
+) -> Optional[Dict[str, object]]:
     """Default provider returns None, triggering heuristic fallback."""
     return None
 
@@ -139,7 +141,8 @@ def _infer_impact_scope(
 
     # Check for public API changes
     if any(
-        kw in text for kw in ("public api", "breaking", "endpoint", "interface", "export")
+        kw in text
+        for kw in ("public api", "breaking", "endpoint", "interface", "export")
     ):
         return ImpactScope.PUBLIC_API
 
@@ -199,7 +202,9 @@ def _extract_technical_highlights(diff_text: str) -> List[str]:
         highlights.append("Added tests")
 
     # Detect logging changes
-    if re.search(r"^\+.*\b(logger\.|logging\.|console\.log)\b", diff_text, re.MULTILINE):
+    if re.search(
+        r"^\+.*\b(logger\.|logging\.|console\.log)\b", diff_text, re.MULTILINE
+    ):
         highlights.append("Added logging")
 
     return highlights[:5]  # Limit to 5 highlights
@@ -217,7 +222,9 @@ class ArtifactBuilder:
     use_llm: bool = True
     llm_provider: Optional[LLMProvider] = None
 
-    def build(self, commit: CommitInfo, diff: Optional[CommitDiff] = None) -> CommitArtifact:
+    def build(
+        self, commit: CommitInfo, diff: Optional[CommitDiff] = None
+    ) -> CommitArtifact:
         """Build a CommitArtifact from commit info and diff data."""
         # Get the diff patch
         try:
