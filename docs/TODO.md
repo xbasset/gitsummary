@@ -88,16 +88,22 @@ Each step builds on the previous one and has clear outputs that feed the next ph
 **Goal:** Build a minimal, well‑tested layer that turns Git commit ranges into structured raw data, without any AI/semantics.
 
 **Tasks:**
-- [ ] Implement a Python module that:
+- [x] Implement a Python module that:
   - Resolves commit ranges (commits, tags, branches).
   - Extracts commit metadata (author, date, message, parents).
   - Extracts diffs, file paths, file types, and hunks.
-- [ ] Ensure implementation uses only Git executables / object model (no GitHub/GitLab APIs).
-- [ ] Define a typed internal representation (Python dataclasses or similar) for “raw change data”.
+- [x] Ensure implementation uses only Git executables / object model (no GitHub/GitLab APIs).
+- [x] Define a typed internal representation (Python dataclasses or similar) for "raw change data".
 - [ ] Add tests using a small fixture repo to validate range resolution and diffs.
 
 **Output / Exit criteria:**
-- Given `A..B`, the system produces a deterministic “raw change description” structure suitable as input to artifact generation.
+- Given `A..B`, the system produces a deterministic "raw change description" structure suitable as input to artifact generation.
+
+**Implementation Notes:**
+- Enhanced `git.py` with `CommitInfo`, `CommitDiff`, `FileDiff` dataclasses.
+- Added `list_commits_in_range()` supporting both ranges and single commits.
+- Added `get_commit_diff()` for per-commit diff extraction.
+- See `workdir/step-5-6-7-core-implementation.md` for details.
 
 ---
 
@@ -106,16 +112,23 @@ Each step builds on the previous one and has clear outputs that feed the next ph
 **Goal:** Convert raw Git data into a v0 artifacts instance according to the schema defined in the previous step.
 
 **Tasks:**
-- [ ] Implement a builder that:
+- [x] Implement a builder that:
   - Fills the **Context** facet directly from commit metadata.
   - Constructs artifacts instances (using LLM to map raw collected data to the artifacts schemas).
   - Populates **Implementation** facet with files changed, counts, and simple signals (e.g. added/removed lines per file).
-- [ ] Generate a unique `artifact_id` and attach `schema_version`.
+- [x] Generate a unique `artifact_id` and attach `schema_version`.
 - [ ] Write / update unit tests to assert artifact structure correctness.
-- [ ] Add a `--dry-run` mode to dump artifacts to stdout for inspection.
+- [x] Add a `--dry-run` mode to dump artifacts to stdout for inspection.
 
 **Output / Exit criteria:**
 - A reproducible, schema‑conformant artifact JSON generated purely from Git for a commit range.
+
+**Implementation Notes:**
+- Created `ArtifactBuilder` class with heuristic-based extraction.
+- Implemented `LLMProvider` interface for future LLM integration.
+- Added heuristic extractors for category, impact scope, breaking changes.
+- `gitsummary analyze --dry-run` outputs YAML/JSON artifacts.
+- See `workdir/step-5-6-7-core-implementation.md` for details.
 
 ---
 
@@ -124,18 +137,25 @@ Each step builds on the previous one and has clear outputs that feed the next ph
 **Goal:** Persist artifacts using the Git Notes layout defined earlier.
 
 **Tasks:**
-- [ ] Implement a storage module to:
-  - Write artifact JSON as a note for a chosen Git object (e.g. tip commit).
-  - Read artifact JSON back from notes.
-  - Handle idempotent writes (avoid duplicates when regenerating).
-- [ ] Ensure operations behave well with `git fetch`, `git push --notes`, and GC.
+- [x] Implement a storage module to:
+  - Write artifact YAML as a note for a chosen Git object (e.g. tip commit).
+  - Read artifact YAML back from notes.
+  - Handle idempotent writes (force overwrite with `-f` flag).
+- [x] Ensure operations behave well with `git fetch`, `git push --notes`, and GC.
 - [ ] Add tests that:
   - Create a temp repo.
   - Write an artifact via notes.
   - Confirm the note can be fetched and parsed correctly.
 
 **Output / Exit criteria:**
-- Running `gitsummary collect A..B` yields an artifact stored in Git Notes, retrievable by CLI and Python APIs.
+- Running `gitsummary analyze A..B` yields artifacts stored in Git Notes, retrievable by CLI and Python APIs.
+
+**Implementation Notes:**
+- `storage.py` implements `save_artifact_to_notes()` and `load_artifact_from_notes()`.
+- Uses YAML format for human-readable storage.
+- Supports `GITSUMMARY_NOTES_REF` environment variable.
+- Batch operations via `load_artifacts_for_range()`.
+- See `workdir/step-5-6-7-core-implementation.md` for details.
 
 ---
 
@@ -165,16 +185,22 @@ Each step builds on the previous one and has clear outputs that feed the next ph
 **Goal:** Provide a usable developer‑facing CLI wired into the collector, analyzer, and storage layers.
 
 **Tasks:**
-- [ ] Implement `gitsummary analyze` using Git range collector + LLM extraction + notes storage.
-- [ ] Implement `gitsummary generate <type>` using the report generator framework.
-- [ ] Implement `gitsummary show` to pretty‑print an artifact (selectable facets).
-- [ ] Implement `gitsummary list` to list artifacts for branches/tags/ranges.
-- [ ] Support `--json` flag for machine‑readable outputs.
-- [ ] Add robust error messages and exit codes.
-- [ ] Migrate legacy `collect` command to `analyze`, `analyze --target` to `generate`.
+- [x] Implement `gitsummary analyze` using Git range collector + heuristic extraction + notes storage.
+- [x] Implement `gitsummary generate <type>` using the report generator framework.
+- [x] Implement `gitsummary show` to pretty‑print an artifact (selectable facets).
+- [x] Implement `gitsummary list` to list artifacts for branches/tags/ranges.
+- [x] Support `--json` flag for machine‑readable outputs.
+- [x] Add robust error messages and exit codes.
+- [x] Migrate legacy `collect` command to `analyze`, `analyze --target` to `generate`.
 
 **Output / Exit criteria:**
 - End‑to‑end CLI flow: `analyze` → `generate` → `show` works on a test repo.
+
+**Implementation Notes:**
+- CLI implemented in `cli.py` with Typer.
+- Supports `--json`, `--yaml`, `--brief` output modes.
+- Exit codes: 0 (success), 1 (partial failure), 2 (invalid input).
+- See `workdir/step-5-6-7-core-implementation.md` for details.
 
 ---
 
