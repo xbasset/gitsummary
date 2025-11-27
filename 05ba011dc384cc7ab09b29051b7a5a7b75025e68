@@ -1,0 +1,11 @@
+commit_hash: 05ba011dc384cc7ab09b29051b7a5a7b75025e68
+schema_version: 0.1.0
+intent_summary: 'feat: Define Git Notes storage layout using `refs/notes/intent` and
+  YAML, and update related documentation and schema comments.'
+category: feature
+behavior_before: null
+behavior_after: null
+impact_scope: dependency
+is_breaking: false
+technical_highlights: []
+tool_version: 0.1.0
