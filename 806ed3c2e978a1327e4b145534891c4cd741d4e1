@@ -1,0 +1,11 @@
+commit_hash: 806ed3c2e978a1327e4b145534891c4cd741d4e1
+schema_version: 0.1.0
+intent_summary: add examples for single file evolution analysis
+category: feature
+behavior_before: null
+behavior_after: null
+impact_scope: docs
+is_breaking: false
+technical_highlights:
+- Added error handling
+tool_version: 0.1.0
