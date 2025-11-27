@@ -1,0 +1,14 @@
+commit_hash: a7e5a472e4ac169f6d45e7f685ed77f6f410e8da
+schema_version: 0.1.0
+intent_summary: 'feat: add core data models for gitsummary artifacts including commit,
+  category, and impact schemas.'
+category: feature
+behavior_before: null
+behavior_after: null
+impact_scope: public_api
+is_breaking: false
+technical_highlights:
+- Added class `ImpactScope`
+- Added class `ChangeCategory`
+- Added class `CommitArtifact`
+tool_version: 0.1.0
