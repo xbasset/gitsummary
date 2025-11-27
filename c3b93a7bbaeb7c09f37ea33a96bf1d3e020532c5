@@ -1,0 +1,11 @@
+commit_hash: c3b93a7bbaeb7c09f37ea33a96bf1d3e020532c5
+schema_version: 0.1.0
+intent_summary: 'docs: Mark artifact schema design as complete, detail its decisions,
+  and outline the next storage step.'
+category: chore
+behavior_before: null
+behavior_after: null
+impact_scope: docs
+is_breaking: false
+technical_highlights: []
+tool_version: 0.1.0
