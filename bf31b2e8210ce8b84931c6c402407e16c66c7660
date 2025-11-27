@@ -1,0 +1,11 @@
+commit_hash: bf31b2e8210ce8b84931c6c402407e16c66c7660
+schema_version: 0.1.0
+intent_summary: Add release notes analyzer to extract relevant sections from artifacts
+category: feature
+behavior_before: null
+behavior_after: null
+impact_scope: internal
+is_breaking: false
+technical_highlights:
+- Added def `_release_notes_analyzer`
+tool_version: 0.1.0
