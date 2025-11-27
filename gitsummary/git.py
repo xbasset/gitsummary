@@ -1,141 +1,86 @@
-"""Light-weight helpers around git plumbing commands used by the CLI."""
+"""Backwards compatibility shim for git module.
+
+DEPRECATED: Import from gitsummary.core or gitsummary.infrastructure instead.
+
+Example:
+    # Old way (deprecated)
+    from gitsummary.git import CommitInfo, list_commits_in_range, GitCommandError
+    
+    # New way (recommended)
+    from gitsummary.core import CommitInfo
+    from gitsummary.infrastructure import list_commits_in_range, GitCommandError
+"""
 
 from __future__ import annotations
 
-import subprocess
-from dataclasses import dataclass
-from datetime import datetime
-from pathlib import Path
-from typing import Iterable, List, Optional, Sequence
+# Re-export core models
+from .core import (
+    CommitDiff,
+    CommitInfo,
+    DiffHunk,
+    DiffStat,
+    FileChange,
+    FileDiff,
+)
+
+# Re-export infrastructure operations
+from .infrastructure import (
+    GitCommandError,
+    diff_patch,
+    diff_patch_for_commit,
+    diff_stat,
+    get_commit_diff,
+    get_commit_info,
+    is_valid_revision,
+    list_commits_in_range,
+    repository_root,
+    resolve_revision,
+    run,
+    tracked_files,
+)
+
+# Re-export notes operations
+from .infrastructure.notes import (
+    NOTES_REF,
+    notes_exists,
+    notes_read,
+    notes_remove,
+    notes_write,
+)
+
+# Legacy aliases
+Commit = CommitInfo
+list_commits = list_commits_in_range
+check_tags = lambda revisions: [run(["rev-parse", "--verify", rev]) for rev in revisions]
+check_revisions = check_tags
 
 __all__ = [
     "GitCommandError",
-    "Commit",
+    "CommitInfo",
     "FileChange",
     "DiffStat",
+    "DiffHunk",
+    "FileDiff",
+    "CommitDiff",
     "run",
     "repository_root",
-    "list_commits",
+    "resolve_revision",
+    "is_valid_revision",
+    "list_commits_in_range",
+    "get_commit_info",
+    "get_commit_diff",
     "diff_stat",
     "diff_patch",
+    "diff_patch_for_commit",
     "tracked_files",
+    "NOTES_REF",
+    "notes_exists",
+    "notes_read",
+    "notes_write",
+    "notes_remove",
+    # Legacy aliases
+    "Commit",
+    "list_commits",
     "check_tags",
+    "check_revisions",
 ]
-
-
-class GitCommandError(RuntimeError):
-    """Raised when an underlying git command fails."""
-
-
-@dataclass(frozen=True)
-class Commit:
-    """Information about a single commit returned by ``git log``."""
-
-    sha: str
-    author: str
-    date: datetime
-    summary: str
-
-
-@dataclass(frozen=True)
-class FileChange:
-    """Represents an entry from ``git diff --name-status``."""
-
-    status: str
-    path: str
-
-
-@dataclass(frozen=True)
-class DiffStat:
-    """Aggregate statistics from ``git diff --numstat``."""
-
-    insertions: int
-    deletions: int
-
-
-def run(args: Sequence[str], *, cwd: Optional[Path] = None) -> str:
-    """Run ``git`` with ``args`` and return stdout, raising on errors."""
-
-    process = subprocess.run(
-        ["git", *args],
-        cwd=cwd,
-        check=False,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
-    if process.returncode != 0:
-        raise GitCommandError(process.stderr.strip() or "git command failed")
-    return process.stdout
-
-
-def repository_root() -> Path:
-    """Return the root directory of the current repository."""
-
-    return Path(run(["rev-parse", "--show-toplevel"]).strip())
-
-
-def list_commits(range_spec: str) -> List[Commit]:
-    """Return commits for ``range_spec`` ordered from newest to oldest."""
-
-    output = run(
-        ["log", "--format=%H\x1f%an\x1f%ad\x1f%s", "--date=iso-strict", range_spec]
-    )
-    commits: List[Commit] = []
-    for line in output.strip().splitlines():
-        if not line:
-            continue
-        sha, author, date_raw, summary = line.split("\x1f", 3)
-        commits.append(
-            Commit(
-                sha=sha,
-                author=author,
-                date=datetime.fromisoformat(date_raw),
-                summary=summary.strip(),
-            )
-        )
-    return commits
-
-
-def diff_stat(range_spec: str) -> DiffStat:
-    """Return aggregate diff statistics for ``range_spec``."""
-
-    numstat_output = run(["diff", "--numstat", range_spec])
-    insertions = 0
-    deletions = 0
-    for line in numstat_output.strip().splitlines():
-        if not line:
-            continue
-        added, removed, *_ = line.split("\t")
-        if added != "-":
-            insertions += int(added)
-        if removed != "-":
-            deletions += int(removed)
-    return DiffStat(insertions=insertions, deletions=deletions)
-
-
-def diff_patch(range_spec: str) -> str:
-    """Return the unified diff for ``range_spec``."""
-
-    return run(["diff", range_spec])
-
-
-def tracked_files(range_spec: str) -> List[FileChange]:
-    """Return the list of changed files for ``range_spec``."""
-
-    output = run(["diff", "--name-status", range_spec])
-    files: List[FileChange] = []
-    for line in output.strip().splitlines():
-        if not line:
-            continue
-        status, *rest = line.split("\t")
-        path = rest[-1] if rest else ""
-        files.append(FileChange(status=status, path=path))
-    return files
-
-
-def check_tags(tags: Iterable[str]) -> None:
-    """Validate that the given tags exist."""
-
-    for tag in tags:
-        run(["rev-parse", "--verify", tag])
