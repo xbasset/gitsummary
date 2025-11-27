@@ -9,8 +9,9 @@
 - `python -m venv .venv && source .venv/bin/activate` (or reuse the existing venv) to isolate dependencies.
 - `pip install -r requirements.txt` installs Typer and other runtime dependencies.
 - `python -m gitsummary --help` validates the CLI entry point after edits.
-- `python -m gitsummary collect --tag v0.1.0 --tag v0.2.0` captures artifacts for a tag range; swap in real tags while developing.
-- `python -m gitsummary analyze <ARTIFACT_ID> --target implementation` renders stored data; prefixes are accepted for convenience.
+- `python -m gitsummary analyze v0.1.0..v0.2.0` analyzes commits in a range and stores artifacts in Git Notes.
+- `python -m gitsummary generate changelog v0.1.0..v0.2.0` generates a changelog from stored artifacts.
+- `python -m gitsummary show <COMMIT>` displays the stored artifact for a commit.
 
 ## Coding Style & Naming Conventions
 - Target Python 3.10+ with complete type hints and dataclasses for structured payloads.

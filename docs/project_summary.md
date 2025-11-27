@@ -70,15 +70,21 @@ The core idea:
 
 ⸻
 
-5. CLI Design (Two-Sided)
+5. CLI Design (Two-Phase: Analyze → Generate)
 
-(a) Builder (Database Builder):
-	`gitsummary collect --tag v0.1 --tag v0.2`
-	→ Runs on commits/ranges to build the semantic database (Artifacts) using LLM inference to capture "The Why" (Intent).
+(a) Analyze (Semantic Extraction):
+	`gitsummary analyze v1.0..v2.0`
+	→ Reads commits, uses LLM to extract semantic understanding, stores artifacts in Git Notes.
 
-(b) Generator (Report Generator):
-	`gitsummary analyze <ARTIFACT_ID> --target release-notes`
-	→ Consumes the database to generate human-readable reports (Release Notes, Impact Analysis).
+(b) Generate (Report Production):
+	`gitsummary generate changelog v1.0..v2.0`
+	`gitsummary generate release-notes v1.0..v2.0`
+	→ Consumes stored artifacts to produce human-readable reports.
+
+**Why this naming?**
+- `analyze` is industry-standard (semantic-release, static analyzers)
+- `generate` is standard for changelog tools (git-cliff, git-chglog)
+- Clear two-phase mental model: expensive analysis once, cheap generation many times
 
 ⸻
 

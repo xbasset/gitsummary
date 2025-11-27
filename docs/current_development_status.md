@@ -25,7 +25,22 @@
   - Created `docs/storage_layout.md`.
 - **Reference:** `workdir/step-3-storage-layout.md`.
 
-## Step 4: CLI Surface Design (Next)
-- **Goal:** Define the user-facing commands (`collect`, `analyze`, `show`).
-- **Inputs:** The storage layout and artifact schema.
-- **Deliverable:** A CLI specification in `docs/cli_design.md`.
+## Step 4: CLI Surface Design (Complete)
+- **Status:** Done.
+- **Outcome:**
+  - Adopted **`analyze` → `generate`** two-phase naming scheme.
+  - Defined core commands: `analyze`, `generate`, `show`, `list`, `version`.
+  - Specified standard git range syntax for all commands.
+  - Designed output modes: human-readable (default), `--json`, `--yaml`, `--brief`.
+  - Documented exit codes and environment variables.
+  - Created `docs/cli_design.md` with full specification and rationale.
+- **Key Decision:** Rejected `collect` (too vague), chose `analyze` for semantic extraction phase and `generate` for report production phase, following industry patterns (semantic-release, git-cliff).
+- **Reference:** `workdir/step-4-cli-design.md`.
+
+## Step 5: Implement Core Git Range & Diff Collector (Next)
+- **Goal:** Build the foundation that turns Git commit ranges into structured raw data.
+- **Inputs:** CLI design, storage layout.
+- **Deliverables:**
+  - Enhance `gitsummary/git.py` to support single-commit and range resolution.
+  - Typed internal representations for commit metadata and diffs.
+  - Tests for range resolution and diff extraction.

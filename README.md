@@ -26,22 +26,75 @@ python -m gitsummary --help
 
 ## Usage
 
-### 1. Build the History (The Historian)
+### 1. Analyze Commits (Build Understanding)
 
 ```bash
-gitsummary collect --tag v0.1.0 --tag v0.2.0
+gitsummary analyze v1.0..v2.0
 ```
-*Fetches pure-git facts, infers intent/impact, and stores a semantic artifact in `.gitsummary/` (and eventually Git Notes).*
-
-### 2. Generate the Report (The Release Note)
+*Reads commits in the range, uses LLM to extract semantic understanding (intent, impact, behavior changes), and stores artifacts in Git Notes.*
 
 ```bash
-gitsummary analyze <ARTIFACT_ID> --target release-notes
+# Preview without storing
+gitsummary analyze v1.0..v2.0 --dry-run
+
+# Force re-analysis of existing artifacts
+gitsummary analyze v1.0..v2.0 --force
 ```
-*Reads the stored artifact and outputs a structured Markdown report describing features, fixes, and breaking changes.*
+
+### 2. Generate Reports (Create Documents)
+
+```bash
+gitsummary generate changelog v1.0..v2.0
+```
+*Reads stored artifacts and produces a formatted changelog.*
+
+```bash
+# Generate release notes to file
+gitsummary generate release-notes v1.0..v2.0 -o RELEASE_NOTES.md
+
+# Generate JSON for CI pipelines
+gitsummary generate changelog v1.0..v2.0 --format json
+```
+
+### 3. Inspect and Discover
+
+```bash
+# Show artifact for a single commit
+gitsummary show abc123
+
+# List commits with their analysis status
+gitsummary list v1.0..v2.0
+
+# Find commits that need analysis
+gitsummary list v1.0..v2.0 --missing
+```
+
+## The Two-Phase Model
+
+```
+Raw Git Data  ──[analyze]──▶  Semantic Artifacts  ──[generate]──▶  Reports
+   (noise)                      (understanding)                  (documents)
+```
+
+- **`analyze`**: Expensive (LLM), runs once per commit, stores durable artifacts
+- **`generate`**: Cheap, runs from cached artifacts, produces multiple formats
 
 ## Development
 
-- **Status:** Early Development (Step 1: Grounding & Constraints)
+- **Status:** Early Development (Step 4: CLI Design Complete)
 - **Focus:** Release Manager use case.
 - **Docs:** See `docs/project_summary.md` for architectural vision.
+- **CLI Spec:** See `docs/cli_design.md` for full command reference.
+
+## Development Commands
+
+```bash
+# Validate CLI entry point
+python -m gitsummary --help
+
+# Run analysis (once implemented)
+python -m gitsummary analyze v0.1.0..v0.2.0
+
+# Generate changelog (once implemented)
+python -m gitsummary generate changelog v0.1.0..v0.2.0
+```

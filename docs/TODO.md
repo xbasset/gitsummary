@@ -64,19 +64,22 @@ Each step builds on the previous one and has clear outputs that feed the next ph
 **Goal:** Define the initial CLI that developers and tools will actually use.
 
 **Tasks:**
-- [ ] Specify core commands and flags (no implementation yet):
-  - `gitsummary collect` (produce raw artifact from Git data)
-  - `gitsummary analyze` (derive semantic facets from an artifact)
+- [x] Specify core commands and flags (no implementation yet):
+  - `gitsummary analyze` (extract semantic understanding, store artifacts)
+  - `gitsummary generate` (produce reports from stored artifacts)
   - `gitsummary show` (human‑friendly view of an artifact)
   - `gitsummary list` (list artifacts for a range / branch / tag)
-- [ ] For each command, define:
+- [x] For each command, define:
   - Inputs (commit range, tags, branches, artifact ID)
   - Outputs (JSON to stdout, pretty text, exit codes)
   - Non‑goals for v0 (what this command will *not* do yet).
-- [ ] Write a short CLI spec in `docs/cli_design.md` with usage examples.
+- [x] Write a short CLI spec in `docs/cli_design.md` with usage examples.
+- [x] Document naming rationale (`analyze` → `generate` two-phase model)
 
 **Output / Exit criteria:**
 - A stable v0 CLI spec that can be implemented without further structural changes.
+
+**Key Design Decision:** Adopted `analyze` → `generate` naming scheme based on industry patterns (semantic-release, git-cliff). See `workdir/step-4-cli-design.md` for full rationale.
 
 ---
 
@@ -162,15 +165,16 @@ Each step builds on the previous one and has clear outputs that feed the next ph
 **Goal:** Provide a usable developer‑facing CLI wired into the collector, analyzer, and storage layers.
 
 **Tasks:**
-- [ ] Implement `gitsummary collect` using the Git range collector + artifact builder + notes storage.
-- [ ] Implement `gitsummary analyze` using the analyzer framework.
+- [ ] Implement `gitsummary analyze` using Git range collector + LLM extraction + notes storage.
+- [ ] Implement `gitsummary generate <type>` using the report generator framework.
 - [ ] Implement `gitsummary show` to pretty‑print an artifact (selectable facets).
 - [ ] Implement `gitsummary list` to list artifacts for branches/tags/ranges.
 - [ ] Support `--json` flag for machine‑readable outputs.
 - [ ] Add robust error messages and exit codes.
+- [ ] Migrate legacy `collect` command to `analyze`, `analyze --target` to `generate`.
 
 **Output / Exit criteria:**
-- End‑to‑end CLI flow: `collect` → `analyze` → `show` works on a test repo.
+- End‑to‑end CLI flow: `analyze` → `generate` → `show` works on a test repo.
 
 ---
 
