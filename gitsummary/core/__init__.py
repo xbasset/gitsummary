@@ -1,0 +1,32 @@
+"""Core domain layer for gitsummary.
+
+This package contains the pure domain models and business logic,
+free from infrastructure concerns (git operations, storage, CLI).
+
+Modules:
+    models: Data classes representing git commit data
+    enums: Change categories and impact scopes
+    artifact: The CommitArtifact schema (Pydantic model)
+"""
+
+from __future__ import annotations
+
+from .artifact import CommitArtifact
+from .enums import ChangeCategory, ImpactScope
+from .models import CommitDiff, CommitInfo, DiffHunk, DiffStat, FileChange, FileDiff
+
+__all__ = [
+    # Models
+    "CommitInfo",
+    "FileChange",
+    "DiffStat",
+    "DiffHunk",
+    "FileDiff",
+    "CommitDiff",
+    # Enums
+    "ChangeCategory",
+    "ImpactScope",
+    # Artifact
+    "CommitArtifact",
+]
+

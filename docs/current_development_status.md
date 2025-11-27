@@ -74,6 +74,23 @@
   - Removed legacy `collect` command.
 - **Reference:** `workdir/step-5-6-7-core-implementation.md`.
 
+## Step 8: Codebase Reorganization (Complete)
+- **Status:** Done.
+- **Outcome:**
+  - Restructured codebase following Clean Architecture principles.
+  - Created layered package structure: `core/`, `extractors/`, `services/`, `infrastructure/`, `cli/`.
+  - Separated concerns: domain models, extraction strategies, application services, infrastructure adapters, CLI presentation.
+  - Moved legacy code to `_legacy/` package.
+  - Created backwards-compatible shim modules for existing imports.
+  - Reduced largest module from 735 lines to ~200 lines.
+- **Key Files:**
+  - `core/`: Domain models (CommitInfo, CommitArtifact, enums)
+  - `extractors/`: Extractor protocol with heuristic and LLM implementations
+  - `services/`: AnalyzerService, ReporterService
+  - `infrastructure/`: Git operations, Notes, Storage
+  - `cli/`: Typer commands split into modules
+- **Reference:** `workdir/step-8-codebase-reorganization.md`.
+
 ## Step 9: Add Semantic Analysis Facets / LLM Integration (Next)
 - **Goal:** Enrich artifacts with higher-level semantics via LLM.
 - **Inputs:** Complete artifact pipeline, LLM provider interface.

@@ -7,7 +7,6 @@ from .cli import app
 
 def main() -> None:
     """Invoke the Typer application."""
-
     app()
 
 
