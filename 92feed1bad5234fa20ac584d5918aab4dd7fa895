@@ -1,0 +1,12 @@
+commit_hash: 92feed1bad5234fa20ac584d5918aab4dd7fa895
+schema_version: 0.1.0
+intent_summary: 'refactor: Update CLI commands to `analyze` and `generate`, enhancing
+  semantic extraction and report generation. Documented the two-phase model and revised
+  related usage examples in `AGENTS.md`, `README.md`, and `cli_design.md`.'
+category: refactor
+behavior_before: null
+behavior_after: null
+impact_scope: docs
+is_breaking: false
+technical_highlights: []
+tool_version: 0.1.0
