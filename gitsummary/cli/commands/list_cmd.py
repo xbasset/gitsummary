@@ -6,6 +6,7 @@ Lists commits in a range and shows which ones have been analyzed.
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 
 import typer
 
@@ -14,6 +15,40 @@ from ...infrastructure import (
     list_commits_in_range,
     load_artifacts_for_range,
 )
+
+
+def _format_date_absolute(dt: datetime) -> str:
+    """Format datetime as YYYY-MM-DD HH:MM."""
+    return dt.strftime("%Y-%m-%d %H:%M")
+
+
+def _format_date_relative(dt: datetime) -> str:
+    """Format datetime as short relative time (e.g., '2d', '3mo', '1y')."""
+    now = datetime.now(timezone.utc)
+    # Make dt timezone-aware if it isn't
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    
+    delta = now - dt
+    seconds = delta.total_seconds()
+    
+    if seconds < 60:
+        return "now"
+    if seconds < 3600:
+        mins = int(seconds / 60)
+        return f"{mins}m"
+    if seconds < 86400:
+        hours = int(seconds / 3600)
+        return f"{hours}h"
+    if seconds < 86400 * 30:
+        days = int(seconds / 86400)
+        return f"{days}d"
+    if seconds < 86400 * 365:
+        months = int(seconds / (86400 * 30))
+        return f"{months}mo"
+    
+    years = int(seconds / (86400 * 365))
+    return f"{years}y"
 
 
 def list_commits(
@@ -29,6 +64,9 @@ def list_commits(
     ),
     count_only: bool = typer.Option(False, "--count", help="Show only counts."),
     output_json: bool = typer.Option(False, "--json", help="Output as JSON."),
+    absolute_date: bool = typer.Option(
+        False, "--date", help="Show absolute dates (YYYY-MM-DD HH:MM) instead of relative."
+    ),
 ) -> None:
     """List commits and their analysis status."""
     try:
@@ -80,18 +118,29 @@ def list_commits(
         if missing_only and is_analyzed:
             continue
 
+        # Format date based on --date flag (default is relative)
+        if absolute_date:
+            date_str = _format_date_absolute(commit.date)
+            date_display = date_str  # "YYYY-MM-DD HH:MM" = 16 chars
+        else:
+            date_str = _format_date_relative(commit.date)
+            date_display = f"{date_str:>4}"  # Right-align, max 4 chars
+
         if output_json:
             results.append(
                 {
                     "sha": commit.sha,
                     "short_sha": commit.short_sha,
+                    "date": commit.date.isoformat(),
                     "summary": commit.summary,
                     "analyzed": is_analyzed,
                 }
             )
         else:
             status = "✓" if is_analyzed else "○"
-            typer.echo(f"{status} {commit.short_sha} {commit.summary[:60]}")
+            # Adjust summary truncation based on date format
+            max_summary = 44 if absolute_date else 55
+            typer.echo(f"{status} {commit.short_sha} {date_display} {commit.summary[:max_summary]}")
 
     if output_json:
         typer.echo(json.dumps(results, indent=2))
