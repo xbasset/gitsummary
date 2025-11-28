@@ -292,13 +292,17 @@ gitsummary list --all
 | `--all` | List all commits in repository |
 | `--analyzed` | Only show commits with artifacts |
 | `--missing` | Only show commits without artifacts |
+| `--date` | Show absolute dates (YYYY-MM-DD HH:MM) instead of relative |
 | `--json` | Output as JSON array |
 | `--count` | Show only counts, not commit list |
 
 **Examples:**
 ```bash
-# List commits with analysis status
+# List commits with analysis status (relative dates by default)
 gitsummary list v1.0..v2.0
+
+# List with absolute dates
+gitsummary list v1.0..v2.0 --date
 
 # Find commits needing analysis
 gitsummary list v1.0..v2.0 --missing
@@ -307,14 +311,26 @@ gitsummary list v1.0..v2.0 --missing
 gitsummary list v1.0..v2.0 --count
 ```
 
-**Output (default):**
+**Output (default, relative dates):**
 ```
 Commits in v1.0..v2.0 (15 total, 12 analyzed)
 
-✓ abc1234 Fix null pointer in login flow
-✓ def5678 Add user preferences API
-○ 111aaaa WIP: experiment with caching
-✓ 222bbbb Bump dependencies
+✓ abc1234   3d Fix null pointer in login flow
+✓ def5678   5d Add user preferences API
+○ 111aaaa  2mo WIP: experiment with caching
+✓ 222bbbb   1y Bump dependencies
+...
+```
+
+Relative date format: `3d` = 3 days, `2mo` = 2 months, `1y` = 1 year, `5h` = 5 hours, `now` = < 1 minute.
+
+**Output (--date, absolute dates):**
+```
+Commits in v1.0..v2.0 (15 total, 12 analyzed)
+
+✓ abc1234 2025-11-25 14:30 Fix null pointer in login flow
+✓ def5678 2025-11-23 10:15 Add user preferences API
+○ 111aaaa 2025-09-15 09:00 WIP: experiment with caching
 ...
 ```
 

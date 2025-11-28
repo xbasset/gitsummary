@@ -104,21 +104,36 @@ gitsummary list HEAD~10..HEAD
 
 # Show only the count
 gitsummary list HEAD~5..HEAD --count
+
+# Show absolute dates instead of relative
+gitsummary list HEAD~5..HEAD --date
 ```
 
-**Example output:**
+**Example output (default, with relative dates):**
 
 ```
 Commits in HEAD~5..HEAD (5 total, 0 analyzed)
 
-○ a1b2c3d Add new feature
-○ d4e5f6g Fix bug in parser
-○ h7i8j9k Update documentation
-○ l0m1n2o Refactor utils
-○ p3q4r5s Initial commit
+○ a1b2c3d   3d Add new feature
+○ d4e5f6g   5d Fix bug in parser
+○ h7i8j9k  2mo Update documentation
+○ l0m1n2o  3mo Refactor utils
+○ p3q4r5s   1y Initial commit
 ```
 
-The `○` means "not analyzed yet".
+**With `--date` flag (absolute dates):**
+
+```
+Commits in HEAD~5..HEAD (5 total, 0 analyzed)
+
+○ a1b2c3d 2025-11-25 14:30 Add new feature
+○ d4e5f6g 2025-11-23 10:15 Fix bug in parser
+○ h7i8j9k 2025-09-15 09:00 Update documentation
+```
+
+- `○` means "not analyzed yet"
+- `✓` means artifact exists
+- Date format: `3d` = 3 days ago, `2mo` = 2 months ago, `1y` = 1 year ago
 
 ---
 
@@ -331,7 +346,8 @@ git push origin refs/notes/intent
 
 | Command | Description |
 |---------|-------------|
-| `gitsummary list <range>` | List commits and their analysis status |
+| `gitsummary list <range>` | List commits with relative dates (default) |
+| `gitsummary list <range> --date` | List commits with absolute dates |
 | `gitsummary list <range> --missing` | Show only un-analyzed commits |
 | `gitsummary analyze <range> --dry-run` | Preview without storing |
 | `gitsummary analyze <range>` | Analyze and store artifacts |

@@ -89,6 +89,18 @@ def check_revisions(revisions: Sequence[str]) -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 
 
+def _parse_git_date(date_str: str) -> datetime:
+    """Parse a git ISO-8601 date string, handling the 'Z' suffix.
+
+    Git uses 'Z' for UTC, but Python's fromisoformat() only supports
+    this in Python 3.11+. This helper normalizes the format.
+    """
+    # Replace 'Z' suffix with '+00:00' for compatibility with Python < 3.11
+    if date_str.endswith("Z"):
+        date_str = date_str[:-1] + "+00:00"
+    return datetime.fromisoformat(date_str)
+
+
 def get_commit_info(revision: str) -> CommitInfo:
     """Get complete information about a single commit.
 
@@ -119,7 +131,7 @@ def get_commit_info(revision: str) -> CommitInfo:
         short_sha=short_sha,
         author_name=author_name,
         author_email=author_email,
-        date=datetime.fromisoformat(date_str),
+        date=_parse_git_date(date_str),
         summary=summary.strip(),
         body=body.strip(),
         parent_shas=parent_shas,

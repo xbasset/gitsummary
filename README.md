@@ -62,8 +62,11 @@ gitsummary generate changelog v1.0..v2.0 --format json
 # Show artifact for a single commit
 gitsummary show abc123
 
-# List commits with their analysis status
+# List commits with their analysis status (relative dates by default)
 gitsummary list v1.0..v2.0
+
+# List with absolute dates
+gitsummary list v1.0..v2.0 --date
 
 # Find commits that need analysis
 gitsummary list v1.0..v2.0 --missing
