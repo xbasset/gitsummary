@@ -276,3 +276,11 @@ Each step builds on the previous one and has clear outputs that feed the next ph
 **Output / Exit criteria:**
 - A prioritized backlog of improvements informed by real‑world usage.
 
+---
+
+## Review Findings (2025-11-28)
+
+- `gitsummary/cli/commands/analyze.py`: Exit code stays 0 when some commits fail; surface failed SHAs or exit non-zero when `errors > 0` to avoid silent partial failures.
+- `gitsummary/cli/commands/generate.py`: JSON changelog omits a dedicated `security` section while Markdown includes one; add explicit security grouping for parity.
+- `gitsummary/cli/commands/generate.py`: `--format text` is advertised but falls back to Markdown without warning; implement or remove/rename to avoid confusing consumers expecting plain text.
+- Tests: No automated tests (`tests/` missing); add coverage for analyze flow, Git Notes persistence, and reporter formatting to prevent regressions.
