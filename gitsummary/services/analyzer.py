@@ -6,11 +6,14 @@ from commits, combining multiple extractors with fallback logic.
 
 from __future__ import annotations
 
+import logging
 from typing import Optional
 
 from ..core import ChangeCategory, CommitArtifact, CommitDiff, CommitInfo, ImpactScope
 from ..extractors import HeuristicExtractor, LLMExtractor
 from ..infrastructure import diff_patch_for_commit
+
+logger = logging.getLogger(__name__)
 
 
 class AnalyzerService:
@@ -18,17 +21,53 @@ class AnalyzerService:
 
     Combines LLM and heuristic extractors with fallback logic
     to produce complete CommitArtifacts.
+
+    The analyzer supports multiple LLM providers and gracefully
+    falls back to heuristics when LLM is unavailable or fails.
     """
 
-    def __init__(self, use_llm: bool = True) -> None:
+    def __init__(
+        self,
+        use_llm: bool = True,
+        provider_name: Optional[str] = None,
+    ) -> None:
         """Initialize the analyzer service.
 
         Args:
             use_llm: Whether to attempt LLM extraction (default: True).
+            provider_name: Name of LLM provider to use (e.g., "openai", "anthropic").
+                          If None, uses the default provider from configuration.
         """
         self.use_llm = use_llm
-        self._llm_extractor = LLMExtractor()
+        self.provider_name = provider_name
+        self._llm_extractor = LLMExtractor(provider_name=provider_name) if use_llm else None
         self._heuristic_extractor = HeuristicExtractor()
+        self._provider_initialized = False
+
+    def _ensure_provider(self) -> bool:
+        """Ensure the LLM provider is initialized.
+
+        Returns True if LLM is available, False otherwise.
+        """
+        if not self.use_llm:
+            return False
+
+        if self._provider_initialized:
+            return self._llm_extractor is not None
+
+        self._provider_initialized = True
+
+        # Try to initialize the provider
+        if self._llm_extractor is not None:
+            try:
+                # Trigger provider initialization
+                self._llm_extractor._get_provider()
+                return True
+            except Exception as e:
+                logger.warning(f"LLM provider not available: {e}")
+                return False
+
+        return False
 
     def analyze(
         self,
@@ -54,10 +93,13 @@ class AnalyzerService:
             diff_patch = ""
 
         # Try LLM extraction first if enabled
-        if self.use_llm:
-            llm_result = self._llm_extractor.extract(commit, diff, diff_patch)
-        else:
-            llm_result = None
+        llm_result = None
+        if self._ensure_provider() and self._llm_extractor is not None:
+            try:
+                llm_result = self._llm_extractor.extract(commit, diff, diff_patch)
+            except Exception as e:
+                logger.warning(f"LLM extraction failed for {commit.short_sha}: {e}")
+                llm_result = None
 
         # Always run heuristic extraction as fallback
         heuristic_result = self._heuristic_extractor.extract(commit, diff, diff_patch)
@@ -87,6 +129,7 @@ def build_commit_artifact(
     diff: Optional[CommitDiff] = None,
     *,
     use_llm: bool = True,
+    provider_name: Optional[str] = None,
 ) -> CommitArtifact:
     """Build a CommitArtifact from commit info and optional diff data.
 
@@ -98,10 +141,10 @@ def build_commit_artifact(
         commit: The commit information.
         diff: Optional pre-fetched diff data.
         use_llm: Whether to attempt LLM extraction (default: True).
+        provider_name: Name of LLM provider (e.g., "openai", "anthropic").
 
     Returns:
         A fully populated CommitArtifact.
     """
-    service = AnalyzerService(use_llm=use_llm)
+    service = AnalyzerService(use_llm=use_llm, provider_name=provider_name)
     return service.analyze(commit, diff)
-

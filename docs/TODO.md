@@ -10,10 +10,10 @@ Each step builds on the previous one and has clear outputs that feed the next ph
 **Goal:** Ensure the project vision, constraints, and target users are explicit and stable before designing anything.
 
 **Tasks:**
-- [ ] Re‑read `docs/project_summary.md` and existing goals/motivation docs.
-- [ ] Capture non‑negotiable constraints (pure Git source, offline, Git‑Notes‑based storage, etc.).
-- [ ] List primary target users and their top 3 jobs‑to‑be‑done.
-- [ ] Write a short, 1–2 paragraph **Problem Statement** and add it to the docs.
+- [X] Re‑read `docs/project_summary.md` and existing goals/motivation docs.
+- [X] Capture non‑negotiable constraints (pure Git source, offline, Git‑Notes‑based storage, etc.).
+- [X] List primary target users and their top 3 jobs‑to‑be‑done.
+- [X] Write a short, 1–2 paragraph **Problem Statement** and add it to the docs.
 
 **Output / Exit criteria:**
 - A single, concise problem statement and constraint list that the rest of the work will assume.
@@ -25,14 +25,14 @@ Each step builds on the previous one and has clear outputs that feed the next ph
 **Goal:** Design the core “artifact” data model that represents semantic information about a change range.
 
 **Tasks:**
-- [ ] Enumerate all facets from the docs (context, intention, implementation, impact, maintainability, deployment, meta).
-- [ ] For each facet, define:
+- [X] Enumerate all facets from the docs (context, intention, implementation, impact, maintainability, deployment, meta).
+- [X] For each facet, define:
   - Required vs optional fields
   - Data types (string, list, enum, numeric, references, etc.)
   - Expected value ranges / formats
-- [ ] Decide how to represent evidence links back to commits, files, hunks.
-- [ ] Version the schema (e.g. `schema_version` field) and note migration expectations.
-- [ ] Document the schema in `docs/artifact_schema.md`.
+- [X] Decide how to represent evidence links back to commits, files, hunks.
+- [X] Version the schema (e.g. `schema_version` field) and note migration expectations.
+- [X] Document the schema in `docs/artifact_schema.md`.
 
 **Output / Exit criteria:**
 - A versioned JSON‑serializable schema specification for a single artifact, with examples.
@@ -164,19 +164,25 @@ Each step builds on the previous one and has clear outputs that feed the next ph
 **Goal:** Enrich basic artifacts with higher‑level semantics (intention, impact, maintainability, deployment, etc.).
 
 **Tasks:**
-- [ ] Define a clear interface for analyzers, e.g. `analyze_<facet>(artifact, raw_data) -> facet_update`.
-- [ ] Implement at least the following v0 analyzers LLM‑backed:
-  - **Intention**: inferred purpose and rationale.
-  - **Impact**: user‑visible or API behavior changes.
-  - **Maintainability**: refactor vs debt, test deltas, complexity signals.
-  - **Deployment**: config/log/monitoring changes and operational notes.
-- [ ] Decide and document how analysis is triggered:
-  - During `collect` (eager)
-  - Or via separate `analyze` command (lazy / incremental).
-- [ ] Ensure analyzers store their outputs back into the artifact while preserving previous facets.
+- [x] Define a clear interface for analyzers/providers (Strategy + Factory pattern).
+- [x] Implement pluggable LLM provider architecture (`gitsummary/llm/` package).
+- [x] Implement OpenAI Responses provider with structured outputs.
+- [x] Add API key management (env vars, .env, config file, interactive prompt).
+- [x] Add CLI flags: `--provider`, `--model`, `--llm/--no-llm`.
+- [x] Create Pydantic schemas for structured extraction.
+- [x] Define prompt templates optimized for commit analysis.
+- [ ] Implement Anthropic Claude provider (placeholder created).
+- [ ] Implement Ollama provider for local models (placeholder created).
+- [ ] Add confidence scoring to extraction results.
+- [ ] Add batch optimization for multiple commits.
 
 **Output / Exit criteria:**
-- `gitsummary analyze <ARTIFACT_ID>` updates an existing artifact with semantic facets and writes them back to notes.
+- `gitsummary analyze` supports LLM-based extraction via `--provider openai`.
+- Graceful fallback to heuristics when LLM unavailable.
+
+**Implementation Notes:**
+- New package: `gitsummary/llm/` with Strategy + Factory pattern.
+- See `workdir/step-9-llm-provider-architecture.md` for details.
 
 ---
 
