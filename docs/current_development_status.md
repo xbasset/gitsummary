@@ -91,11 +91,24 @@
   - `cli/`: Typer commands split into modules
 - **Reference:** `workdir/step-8-codebase-reorganization.md`.
 
-## Step 9: Add Semantic Analysis Facets / LLM Integration (Next)
+## Step 9: Add Semantic Analysis Facets / LLM Integration (In Progress)
+- **Status:** OpenAI provider implemented.
 - **Goal:** Enrich artifacts with higher-level semantics via LLM.
-- **Inputs:** Complete artifact pipeline, LLM provider interface.
-- **Deliverables:**
-  - LLM provider implementations (OpenAI, Claude).
-  - Enhanced intent_summary extraction.
-  - Behavior before/after inference.
-  - Confidence scoring.
+- **Implemented:**
+  - Pluggable LLM provider architecture (`gitsummary/llm/` package)
+  - OpenAI Responses API with structured outputs
+  - API key management (env vars, .env, config file, interactive prompt)
+  - CLI flags: `--provider`, `--model`, `--llm/--no-llm`
+  - Pydantic schemas for structured extraction
+  - Prompt templates optimized for commit analysis
+- **Placeholder Providers:**
+  - Anthropic Claude (planned)
+  - Ollama local models (planned)
+- **Reference:** `workdir/step-9-llm-provider-architecture.md`
+
+### Remaining for Step 9:
+- [ ] Complete Anthropic Claude provider
+- [ ] Complete Ollama provider for local models
+- [ ] Add confidence scoring
+- [ ] Add batch optimization for multiple commits
+- [ ] Add token usage reporting

@@ -7,7 +7,8 @@ Results are stored in Git Notes (refs/notes/intent).
 
 from __future__ import annotations
 
-from typing import List
+import os
+from typing import List, Optional
 
 import typer
 
@@ -19,7 +20,7 @@ from ...infrastructure import (
     list_commits_in_range,
     save_artifact_to_notes,
 )
-from ...services import build_commit_artifact
+from ...services import AnalyzerService
 from ..formatters import format_artifact_json, format_artifact_yaml
 
 
@@ -45,16 +46,60 @@ def analyze(
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Show detailed progress."
     ),
+    # LLM options
+    use_llm: bool = typer.Option(
+        True,
+        "--llm/--no-llm",
+        help="Enable or disable LLM-based analysis. Default: enabled if provider is available.",
+    ),
+    provider: Optional[str] = typer.Option(
+        None,
+        "--provider",
+        "-p",
+        envvar="GITSUMMARY_PROVIDER",
+        help="LLM provider to use (openai, anthropic, ollama). Default: from config or 'openai'.",
+    ),
+    model: Optional[str] = typer.Option(
+        None,
+        "--model",
+        "-m",
+        envvar="GITSUMMARY_MODEL",
+        help="Model to use for LLM analysis. Provider-specific (e.g., 'gpt-4o-2024-08-06').",
+    ),
 ) -> None:
     """Extract semantic understanding from commits and store as artifacts.
 
     This is the core command that analyzes commits using heuristics (and
     optionally LLM) to extract semantic information about each change.
     Results are stored in Git Notes (refs/notes/intent).
+
+    \b
+    LLM Providers:
+      The --provider flag selects which LLM to use for enhanced analysis.
+      Supported providers: openai, anthropic, ollama (more coming).
+
+    \b
+      API keys are loaded from (in order):
+      1. Environment variables (OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.)
+      2. .env file in the current directory
+      3. ~/.config/gitsummary/config file
+      4. Interactive prompt (with option to save)
+
+    \b
+    Examples:
+      gitsummary analyze HEAD~5..HEAD          # Analyze last 5 commits
+      gitsummary analyze v1.0..v2.0 --provider openai
+      gitsummary analyze HEAD --no-llm         # Heuristic only
+      gitsummary analyze HEAD --dry-run --json # Preview without storing
     """
     # --json implies --dry-run
     if output_json:
         dry_run = True
+
+    # Set model in environment if provided (for provider to pick up)
+    if model:
+        provider_key = (provider or "openai").upper()
+        os.environ[f"GITSUMMARY_{provider_key}_MODEL"] = model
 
     try:
         commits = list_commits_in_range(revision_range)
@@ -71,7 +116,12 @@ def analyze(
         raise typer.Exit(code=1)
 
     if not dry_run:
-        typer.echo(f"Analyzing {len(commits)} commit(s) in {revision_range}...")
+        provider_info = f" (provider: {provider})" if provider else ""
+        llm_info = f" with LLM{provider_info}" if use_llm else " (heuristic only)"
+        typer.echo(f"Analyzing {len(commits)} commit(s) in {revision_range}{llm_info}...")
+
+    # Initialize the analyzer service (single instance for batch efficiency)
+    analyzer = AnalyzerService(use_llm=use_llm, provider_name=provider)
 
     analyzed = 0
     skipped = 0
@@ -90,8 +140,8 @@ def analyze(
             # Get diff data
             diff = get_commit_diff(commit.sha)
 
-            # Build artifact
-            artifact = build_commit_artifact(commit, diff, use_llm=True)
+            # Build artifact using the analyzer service
+            artifact = analyzer.analyze(commit, diff)
             artifacts.append(artifact)
 
             if dry_run:
@@ -129,4 +179,3 @@ def analyze(
     # Exit codes per CLI spec
     if errors > 0 and analyzed == 0:
         raise typer.Exit(code=1)
-

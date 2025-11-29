@@ -1,3 +1,15 @@
 typer>=0.9
 PyYAML>=6.0
 pydantic>=2.0
+
+# LLM Provider Dependencies (optional)
+# Install the ones you need for your preferred provider
+
+# OpenAI (gpt-4o, gpt-4, etc.)
+openai>=1.0.0
+
+# Anthropic (Claude) - uncomment when needed
+# anthropic>=0.20.0
+
+# Configuration management
+python-dotenv>=1.0.0
