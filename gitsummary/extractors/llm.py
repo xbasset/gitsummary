@@ -202,7 +202,7 @@ class LLMExtractor:
 
 def create_openai_provider_function(
     api_key: Optional[str] = None,
-    model: str = "gpt-4o-2024-08-06",
+    model: str = "gpt-5.1",
 ) -> LLMProvider:
     """Create a legacy-compatible provider function using the new OpenAI provider.
 
@@ -211,7 +211,7 @@ def create_openai_provider_function(
 
     Args:
         api_key: OpenAI API key. If None, uses environment variable.
-        model: Model to use (default: gpt-4o-2024-08-06 for best structured outputs).
+        model: Model to use (default: gpt-5.1 for best structured outputs).
 
     Returns:
         A callable compatible with set_llm_provider().

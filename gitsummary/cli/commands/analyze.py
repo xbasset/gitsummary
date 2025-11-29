@@ -64,7 +64,7 @@ def analyze(
         "--model",
         "-m",
         envvar="GITSUMMARY_MODEL",
-        help="Model to use for LLM analysis. Provider-specific (e.g., 'gpt-4o-2024-08-06').",
+        help="Model to use for LLM analysis. Provider-specific (e.g., 'gpt-5.1').",
     ),
 ) -> None:
     """Extract semantic understanding from commits and store as artifacts.

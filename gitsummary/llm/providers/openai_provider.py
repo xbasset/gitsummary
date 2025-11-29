@@ -18,7 +18,6 @@ Requires:
 Supported Models:
 - gpt-5.1 (default, latest model with best capabilities)
 - gpt-4.1 (previous generation)
-- gpt-4o-2024-08-06 (for structured outputs)
 - gpt-4o-mini (faster, cheaper)
 """
 
@@ -83,7 +82,7 @@ class OpenAIProvider(BaseLLMProvider):
     STRUCTURED_OUTPUT_MODELS = {
         "gpt-5.1",
         "gpt-4.1",
-        "gpt-4o-2024-08-06",
+        "gpt-5.1",
         "gpt-4o-mini",
         "gpt-4o-mini-2024-07-18",
         "gpt-4o",
