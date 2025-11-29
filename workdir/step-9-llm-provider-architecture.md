@@ -143,20 +143,6 @@ class MyProvider(BaseLLMProvider):
         pass
 ```
 
-## OpenAI Responses API Details
-
-The OpenAI provider uses the new Responses API (November 2024+):
-
-| Old API (Chat Completions) | New API (Responses) |
-|---------------------------|---------------------|
-| `client.beta.chat.completions.parse()` | `client.responses.parse()` |
-| `messages=[...]` | `input=[...]` |
-| `response_format=Schema` | `text_format=Schema` |
-| `response.choices[0].message.parsed` | `response.output_parsed` |
-| `max_tokens` | `max_output_tokens` |
-
-Default model: `gpt-5.1` (latest with best capabilities)
-
 ## Files Changed
 
 ### New Files

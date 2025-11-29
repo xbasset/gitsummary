@@ -182,7 +182,6 @@ Each step builds on the previous one and has clear outputs that feed the next ph
 
 **Implementation Notes:**
 - New package: `gitsummary/llm/` with Strategy + Factory pattern.
-- OpenAI uses `beta.chat.completions.parse()` for guaranteed schema conformance.
 - See `workdir/step-9-llm-provider-architecture.md` for details.
 
 ---
