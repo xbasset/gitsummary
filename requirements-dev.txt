@@ -2,9 +2,8 @@
 
 # Testing
 pytest>=8.0.0
-pytest-cov>=4.0.0
+pytest-cov>=5.0.0
 
 # Code quality (optional)
 # ruff>=0.1.0
 # mypy>=1.0.0
-
