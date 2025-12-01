@@ -148,3 +148,5 @@ class TestNotesRemove:
                 ["notes", "--ref=refs/notes/custom", "remove", "abc123"]
             )
 
+
+
