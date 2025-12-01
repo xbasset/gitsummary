@@ -1,0 +1,88 @@
+schema_version: 1.0.0
+artifact_type: release-note
+metadata:
+  generated_at: '2025-12-01T07:16:20.646533'
+  generator_version: 0.2.0
+  llm_provider: null
+  llm_model: null
+  revision_range: HEAD~3..HEAD
+  tip_commit: f875dbfd0618caf5c97d310696098daa36e781ee
+  commit_count: 9
+  analyzed_count: 9
+  source_commits:
+  - sha: f875dbf
+    category: feature
+  - sha: 1771f75
+    category: chore
+  - sha: e9ffd5b
+    category: feature
+  - sha: 94fcfed
+    category: feature
+  - sha: cd724cb
+    category: chore
+  - sha: 33d5ad0
+    category: feature
+  - sha: 0b24508
+    category: refactor
+  - sha: 5e436ec
+    category: fix
+  - sha: 57946e6
+    category: feature
+header:
+  product_name: gitsummary
+  version: HEAD
+  release_date: '2025-12-01'
+  theme: This release includes 5 new features, 1 bug fix.
+highlights:
+- emoji: 🚀
+  type: new
+  summary: 'Merge pull request #11 from xbasset/xbt/implement-tests'
+- emoji: 🛠️
+  type: fixed
+  summary: 'Merge pull request #9 from xbasset/fix/list-command'
+- emoji: ⚠️
+  type: breaking
+  summary: 'Update TODO and architecture documentation for LLM provider '
+features:
+- title: 'Merge pull request #11 from xbasset/xbt/implement-'
+  description: 'Merge pull request #11 from xbasset/xbt/implement-tests'
+  user_benefit: Enhances functionality.
+  commits:
+  - f875dbf
+- title: Add testing framework configuration and initial te
+  description: Add testing framework configuration and initial test files
+  user_benefit: Enhances functionality.
+  commits:
+  - e9ffd5b
+- title: 'Merge pull request #10 from xbasset/xbt/llm-analys'
+  description: 'Merge pull request #10 from xbasset/xbt/llm-analysis'
+  user_benefit: Enhances functionality.
+  commits:
+  - 94fcfed
+- title: Update TODO and architecture documentation for LLM
+  description: Update TODO and architecture documentation for LLM provider integration
+  user_benefit: Enhances functionality.
+  commits:
+  - 33d5ad0
+- title: 'feat: Add support for absolute date formatting in '
+  description: 'feat: Add support for absolute date formatting in commit listing'
+  user_benefit: Enhances functionality.
+  commits:
+  - 57946e6
+improvements:
+- summary: Implement pluggable LLM provider architecture with OpenAI integration
+  commits:
+  - 0b24508
+fixes:
+- summary: 'Merge pull request #9 from xbasset/fix/list-command'
+  commits:
+  - 5e436ec
+deprecations:
+- what: Update TODO and architecture documentation for LLM provider integration
+  reason: API or behavior change required.
+  deadline: null
+  migration: See documentation for details.
+  commits:
+  - 33d5ad0
+known_issues: []
+call_to_action: null
