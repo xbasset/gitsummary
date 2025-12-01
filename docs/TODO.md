@@ -284,6 +284,25 @@ Each step builds on the previous one and has clear outputs that feed the next ph
 
 ---
 
+## Future Ideas
+
+### Interactive Refinement Mode
+Allow users to interactively refine generated reports before finalizing:
+- `--interactive` flag to enter refinement mode
+- Preview report sections, suggest edits, rerun LLM for specific parts
+- Save refined version to Git Notes
+
+### Template Customization
+- Support Jinja2 templates for custom report formats
+- Predefined "report styles" (technical, executive, changelog)
+- Organization-specific templates
+
+### Multi-Language Support
+- Generate release notes in different languages
+- Use LLM to translate while preserving technical accuracy
+
+---
+
 ## Review Findings (2025-11-28)
 
 - `gitsummary/cli/commands/analyze.py`: Exit code stays 0 when some commits fail; surface failed SHAs or exit non-zero when `errors > 0` to avoid silent partial failures.

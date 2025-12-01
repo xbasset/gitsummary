@@ -7,9 +7,22 @@ transforming stored artifacts into various output formats.
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 from ..core import ChangeCategory, CommitArtifact, CommitInfo, ImpactScope
+from ..core.release_note import (
+    BugFix,
+    CallToAction,
+    Deprecation,
+    Feature,
+    Highlight,
+    Improvement,
+    ReleaseNote,
+    ReleaseNoteHeader,
+    ReleaseNoteMetadata,
+    SourceCommit,
+)
 
 
 class ReporterService:
@@ -133,6 +146,315 @@ class ReporterService:
             breaking_changes=breaking_changes,
             technical_highlights=all_highlights,
         )
+
+    def generate_llm_release_notes(
+        self,
+        commits: List[CommitInfo],
+        artifacts: Dict[str, Optional[CommitArtifact]],
+        *,
+        product_name: str,
+        version: str,
+        revision_range: str,
+        provider: Optional["BaseLLMProvider"] = None,
+    ) -> ReleaseNote:
+        """Generate user-facing release notes using LLM synthesis.
+
+        This method synthesizes commit-level artifacts into a cohesive,
+        user-focused release note document.
+
+        Args:
+            commits: List of commits in the range.
+            artifacts: Dict mapping SHA to artifact (or None if not analyzed).
+            product_name: Name of the product for the header.
+            version: Version string for the header.
+            revision_range: Git revision range (e.g., 'v0.1.0..v0.2.0').
+            provider: LLM provider to use for synthesis. If None, uses heuristics.
+
+        Returns:
+            A complete ReleaseNote ready for formatting or storage.
+        """
+        # Get tip commit SHA
+        tip_commit = commits[0].sha if commits else ""
+
+        # Prepare artifacts data for synthesis
+        artifacts_data = self._prepare_artifacts_for_synthesis(commits, artifacts)
+
+        # Generate the synthesized content
+        if provider is not None:
+            synthesized = self._synthesize_with_llm(
+                product_name, version, artifacts_data, provider
+            )
+        else:
+            synthesized = self._synthesize_heuristic(commits, artifacts)
+
+        # Build the release note
+        source_commits = [
+            SourceCommit(sha=c.short_sha, category=artifacts[c.sha].category.value)
+            for c in commits
+            if c.sha in artifacts and artifacts[c.sha] is not None
+        ]
+
+        analyzed_count = sum(1 for a in artifacts.values() if a is not None)
+
+        metadata = ReleaseNoteMetadata(
+            generated_at=datetime.utcnow(),
+            generator_version="0.2.0",
+            llm_provider=provider.name if provider else None,
+            llm_model=provider.get_model() if provider else None,
+            revision_range=revision_range,
+            tip_commit=tip_commit,
+            commit_count=len(commits),
+            analyzed_count=analyzed_count,
+            source_commits=source_commits,
+        )
+
+        header = ReleaseNoteHeader(
+            product_name=product_name,
+            version=version,
+            release_date=datetime.utcnow().strftime("%Y-%m-%d"),
+            theme=synthesized.get("theme", "Various improvements and fixes."),
+        )
+
+        # Build sections from synthesized content
+        highlights = [
+            Highlight(emoji=h["emoji"], type=h["type"], summary=h["summary"])
+            for h in synthesized.get("highlights", [])
+        ]
+
+        features = [
+            Feature(
+                title=f["title"],
+                description=f["description"],
+                user_benefit=f["user_benefit"],
+                commits=f.get("commit_refs", []),
+            )
+            for f in synthesized.get("features", [])
+        ]
+
+        improvements = [
+            Improvement(summary=i["summary"], commits=i.get("commit_refs", []))
+            for i in synthesized.get("improvements", [])
+        ]
+
+        fixes = [
+            BugFix(summary=f["summary"], commits=f.get("commit_refs", []))
+            for f in synthesized.get("fixes", [])
+        ]
+
+        deprecations = [
+            Deprecation(
+                what=d["what"],
+                reason=d["reason"],
+                migration=d["migration"],
+                commits=d.get("commit_refs", []),
+            )
+            for d in synthesized.get("deprecations", [])
+        ]
+
+        return ReleaseNote(
+            metadata=metadata,
+            header=header,
+            highlights=highlights,
+            features=features,
+            improvements=improvements,
+            fixes=fixes,
+            deprecations=deprecations,
+        )
+
+    def _prepare_artifacts_for_synthesis(
+        self,
+        commits: List[CommitInfo],
+        artifacts: Dict[str, Optional[CommitArtifact]],
+    ) -> List[Dict[str, Any]]:
+        """Prepare commit artifacts data for LLM synthesis."""
+        result = []
+        for commit in commits:
+            artifact = artifacts.get(commit.sha)
+            if artifact is None:
+                continue
+
+            result.append({
+                "sha": commit.short_sha,
+                "category": artifact.category.value,
+                "intent_summary": artifact.intent_summary,
+                "behavior_before": artifact.behavior_before,
+                "behavior_after": artifact.behavior_after,
+                "is_breaking": artifact.is_breaking,
+                "technical_highlights": artifact.technical_highlights,
+                "impact_scope": artifact.impact_scope.value,
+            })
+
+        return result
+
+    def _synthesize_with_llm(
+        self,
+        product_name: str,
+        version: str,
+        artifacts_data: List[Dict[str, Any]],
+        provider: "BaseLLMProvider",
+    ) -> Dict[str, Any]:
+        """Use LLM to synthesize release note content."""
+        from ..llm.prompts import (
+            RELEASE_NOTE_SYSTEM_PROMPT,
+            build_release_note_synthesis_prompt,
+            format_artifacts_for_synthesis,
+        )
+        from ..llm.schemas import ReleaseNoteSynthesisSchema
+
+        # Format artifacts for the prompt
+        artifacts_summary = format_artifacts_for_synthesis(artifacts_data)
+
+        # Build the prompt
+        user_prompt = build_release_note_synthesis_prompt(
+            product_name, version, artifacts_summary
+        )
+
+        # Call the LLM
+        response = provider.extract_structured(
+            user_prompt,
+            ReleaseNoteSynthesisSchema,
+            system_prompt=RELEASE_NOTE_SYSTEM_PROMPT,
+        )
+
+        if response.parsed:
+            return response.parsed
+
+        # Fallback to heuristic if LLM fails
+        return self._synthesize_heuristic_from_data(artifacts_data)
+
+    def _synthesize_heuristic(
+        self,
+        commits: List[CommitInfo],
+        artifacts: Dict[str, Optional[CommitArtifact]],
+    ) -> Dict[str, Any]:
+        """Generate synthesized content using heuristics (no LLM)."""
+        artifacts_data = self._prepare_artifacts_for_synthesis(commits, artifacts)
+        return self._synthesize_heuristic_from_data(artifacts_data)
+
+    def _synthesize_heuristic_from_data(
+        self,
+        artifacts_data: List[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        """Generate synthesized content from prepared artifacts data."""
+        # Group by category
+        by_category: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+        for item in artifacts_data:
+            by_category[item["category"]].append(item)
+
+        # Build highlights
+        highlights = []
+        breaking_items = [a for a in artifacts_data if a.get("is_breaking")]
+
+        # Add feature highlight
+        if by_category.get("feature"):
+            feat = by_category["feature"][0]
+            highlights.append({
+                "emoji": "🚀",
+                "type": "new",
+                "summary": feat["intent_summary"][:60],
+            })
+
+        # Add improvement highlight
+        if by_category.get("performance"):
+            perf = by_category["performance"][0]
+            highlights.append({
+                "emoji": "✨",
+                "type": "improved",
+                "summary": perf["intent_summary"][:60],
+            })
+
+        # Add fix highlight
+        if by_category.get("fix"):
+            fix = by_category["fix"][0]
+            highlights.append({
+                "emoji": "🛠️",
+                "type": "fixed",
+                "summary": fix["intent_summary"][:60],
+            })
+
+        # Add security highlight
+        if by_category.get("security"):
+            sec = by_category["security"][0]
+            highlights.append({
+                "emoji": "🔒",
+                "type": "security",
+                "summary": sec["intent_summary"][:60],
+            })
+
+        # Add breaking change highlight
+        if breaking_items:
+            highlights.append({
+                "emoji": "⚠️",
+                "type": "breaking",
+                "summary": breaking_items[0]["intent_summary"][:60],
+            })
+
+        # Build features
+        features = [
+            {
+                "title": f["intent_summary"][:50],
+                "description": f["intent_summary"],
+                "user_benefit": f.get("behavior_after") or "Enhances functionality.",
+                "commit_refs": [f["sha"]],
+            }
+            for f in by_category.get("feature", [])
+        ]
+
+        # Build improvements
+        improvements = [
+            {"summary": i["intent_summary"], "commit_refs": [i["sha"]]}
+            for i in by_category.get("performance", [])
+        ]
+        improvements.extend([
+            {"summary": i["intent_summary"], "commit_refs": [i["sha"]]}
+            for i in by_category.get("refactor", [])
+            if i.get("impact_scope") != "internal"
+        ])
+
+        # Build fixes
+        fixes = [
+            {"summary": f["intent_summary"], "commit_refs": [f["sha"]]}
+            for f in by_category.get("fix", [])
+        ]
+        fixes.extend([
+            {"summary": s["intent_summary"], "commit_refs": [s["sha"]]}
+            for s in by_category.get("security", [])
+        ])
+
+        # Build deprecations
+        deprecations = [
+            {
+                "what": b["intent_summary"],
+                "reason": "API or behavior change required.",
+                "migration": b.get("behavior_after") or "See documentation for details.",
+                "commit_refs": [b["sha"]],
+            }
+            for b in breaking_items
+        ]
+
+        # Generate theme
+        feature_count = len(by_category.get("feature", []))
+        fix_count = len(by_category.get("fix", []))
+        perf_count = len(by_category.get("performance", []))
+
+        theme_parts = []
+        if feature_count > 0:
+            theme_parts.append(f"{feature_count} new feature{'s' if feature_count > 1 else ''}")
+        if fix_count > 0:
+            theme_parts.append(f"{fix_count} bug fix{'es' if fix_count > 1 else ''}")
+        if perf_count > 0:
+            theme_parts.append("performance improvements")
+
+        theme = f"This release includes {', '.join(theme_parts)}." if theme_parts else "Various improvements and fixes."
+
+        return {
+            "theme": theme,
+            "highlights": highlights[:5],
+            "features": features,
+            "improvements": improvements,
+            "fixes": fixes,
+            "deprecations": deprecations,
+        }
 
 
 # ─────────────────────────────────────────────────────────────────────────────

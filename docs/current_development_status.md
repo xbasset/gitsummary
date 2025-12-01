@@ -112,3 +112,30 @@
 - [ ] Add confidence scoring
 - [ ] Add batch optimization for multiple commits
 - [ ] Add token usage reporting
+
+## Step 10: LLM-Assisted Release Notes Generation (Complete)
+- **Status:** Done.
+- **Goal:** Implement LLM-assisted synthesis for high-quality release notes.
+- **Implemented:**
+  - `ReleaseNote` data model in `core/release_note.py` with comprehensive schema
+  - Git Notes storage at `refs/notes/report/release-note`
+  - LLM synthesis prompts and schemas in `llm/prompts.py` and `llm/schemas.py`
+  - `ReporterService.generate_llm_release_notes()` with both LLM and heuristic modes
+  - Enhanced `generate release-notes` CLI command:
+    - `--llm/--no-llm` flag for LLM synthesis (default: enabled)
+    - `--provider` and `--model` options for LLM selection
+    - `--format` option supporting yaml, markdown, text
+    - `--store` flag to save release note to Git Notes
+    - `--product` and `--version` options for header customization
+  - Three output formatters: YAML (raw data), Markdown, Plain text
+- **Key Design Decisions:**
+  - Report-level artifact (one per release range, not per commit)
+  - Attached to tip commit for easy retrieval
+  - Separate namespace from commit artifacts
+  - Full traceability metadata (source commits, LLM used, generation time)
+- **Reference:** `workdir/step-10-llm-release-notes.md`
+
+### Future Ideas (documented in TODO.md):
+- Interactive refinement mode (`--interactive`)
+- Template customization (Jinja2 templates)
+- Multi-language support
