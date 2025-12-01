@@ -1,0 +1,10 @@
+commit_hash: 33d5ad0fa9e76b8339b877af17e603ca20834761
+schema_version: 0.1.0
+intent_summary: Update TODO and architecture documentation for LLM provider integration
+category: feature
+behavior_before: null
+behavior_after: null
+impact_scope: docs
+is_breaking: true
+technical_highlights: []
+tool_version: 0.1.0
