@@ -1,0 +1,15 @@
+commit_hash: 24c5da592beabae24bfc5c1deaa3d17d264f5534
+schema_version: 0.1.0
+intent_summary: 'Merge pull request #12 from xbasset/step-10-llm-release-notes'
+category: feature
+behavior_before: null
+behavior_after: null
+impact_scope: public_api
+is_breaking: false
+technical_highlights:
+- Added def `_get_llm_provider`
+- Added def `generate_impact`
+- Added def `show_release_note`
+- Removed def `_format_changelog_markdown`
+- Removed def `_write_output`
+tool_version: 0.1.0
