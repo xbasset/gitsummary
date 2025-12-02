@@ -1,0 +1,14 @@
+commit_hash: 67371581d5e75bb0554eadf36d2f3f0f246adcc3
+schema_version: 0.1.0
+intent_summary: Implement LLM-assisted release notes generation
+category: fix
+behavior_before: null
+behavior_after: null
+impact_scope: public_api
+is_breaking: false
+technical_highlights:
+- Added def `_get_llm_provider`
+- Added def `_format_release_note_markdown`
+- Added def `_format_release_note_text`
+- Added error handling
+tool_version: 0.1.0
