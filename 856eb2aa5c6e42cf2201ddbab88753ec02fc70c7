@@ -1,0 +1,15 @@
+commit_hash: 856eb2aa5c6e42cf2201ddbab88753ec02fc70c7
+schema_version: 0.1.0
+intent_summary: Refactor release notes functionality and enhance LLM integration
+category: refactor
+behavior_before: null
+behavior_after: null
+impact_scope: public_api
+is_breaking: false
+technical_highlights:
+- Added def `build_commit_analysis_prompt`
+- Added def `build_batch_analysis_prompt`
+- Added def `build_release_note_synthesis_prompt`
+- Removed def `_format_release_note_markdown`
+- Removed def `_format_release_note_text`
+tool_version: 0.1.0
