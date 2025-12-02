@@ -1,0 +1,19 @@
+commit_hash: a91ab977d8ec02774f45d74c1f8f41408bff7f1b
+schema_version: 0.1.0
+intent_summary: Replaces a minimal TODO note with a detailed, ordered work plan for
+  the gitsummary project and removes now-redundant specification discussion documents.
+category: chore
+behavior_before: null
+behavior_after: null
+impact_scope: docs
+is_breaking: false
+technical_highlights:
+- Expanded docs/TODO.md from a short placeholder into a 13-step sequential project
+  plan covering problem grounding, schema design, storage layout, CLI design, implementation,
+  testing, docs, packaging, and dogfooding.
+- Removed workdir/spec-open-questions.md, which previously captured a large set of
+  unresolved design questions; these are implicitly superseded or assumed to be resolved/handled
+  by the new work plan.
+- No code, APIs, or configuration were changed—only documentation and planning artifacts
+  were updated and reorganized.
+tool_version: 0.1.0
