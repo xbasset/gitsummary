@@ -1,10 +1,18 @@
 commit_hash: 33d5ad0fa9e76b8339b877af17e603ca20834761
 schema_version: 0.1.0
-intent_summary: Update TODO and architecture documentation for LLM provider integration
-category: feature
+intent_summary: Remove outdated OpenAI Responses API implementation details from the
+  architecture docs and TODO notes, keeping documentation provider-agnostic and current.
+category: chore
 behavior_before: null
 behavior_after: null
 impact_scope: docs
-is_breaking: true
-technical_highlights: []
+is_breaking: false
+technical_highlights:
+- Eliminates a TODO implementation note that specifically referenced `beta.chat.completions.parse()`
+  for schema conformance, reducing coupling of docs to a particular OpenAI API variant.
+- Removes a dedicated section describing the OpenAI Responses API (including parameter
+  and field mappings and default model) from the step-9 architecture document, likely
+  because it is outdated or no longer aligned with the intended provider abstraction.
+- Keeps references to the new `gitsummary/llm/` package and Strategy + Factory pattern,
+  indicating the architecture remains but without low-level OpenAI API specifics.
 tool_version: 0.1.0
