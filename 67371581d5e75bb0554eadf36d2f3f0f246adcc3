@@ -1,14 +1,70 @@
 commit_hash: 67371581d5e75bb0554eadf36d2f3f0f246adcc3
 schema_version: 0.1.0
-intent_summary: Implement LLM-assisted release notes generation
-category: fix
-behavior_before: null
-behavior_after: null
+intent_summary: Add an LLM-assisted release-notes generation pipeline, including a
+  structured ReleaseNote model, CLI options, Git Notes storage, and commands to generate
+  and display release notes, while restructuring the `show` CLI into a subcommand
+  group.
+category: feature
+behavior_before: '/ Before this change:
+
+  - The `generate release-notes` command produced a simple, heuristic report based
+  on analyzed artifacts, with limited formatting and no concept of a structured ReleaseNote
+  object.
+
+  - There was no LLM-based synthesis for user-facing release notes.
+
+  - Release notes were not stored as first-class artifacts in Git Notes; only per-commit
+  artifacts were supported.
+
+  - The CLI had a flat `show` command (e.g., `gitsummary show <sha>`) and no way to
+  show release notes.
+
+  - There were no options to select LLM provider/model, output format (yaml/markdown/text),
+  or to customize product/version metadata for release notes.'
+behavior_after: "/ After this change:\n- `generate release-notes` builds a structured\
+  \ `ReleaseNote` object (via `ReporterService.generate_llm_release_notes`) using\
+  \ either an LLM provider or a heuristic fallback.\n- The command now supports:\n\
+  \  - `--llm/--no-llm` to toggle LLM synthesis.\n  - `--provider` and `--model` to\
+  \ choose the LLM backend and model.\n  - `--format` to output markdown (default),\
+  \ yaml (raw data), or plain text.\n  - `--product` and `--version` to customize\
+  \ header metadata (with sensible defaults from repo name and revision range).\n\
+  \  - `--store` to persist the generated release note into Git Notes under a dedicated\
+  \ namespace, attached to the tip commit of the range.\n- If no analyzed artifacts\
+  \ are found for the range, the command exits with a non-zero status and a clear\
+  \ warning.\n- New helper functions format the `ReleaseNote` into markdown or plain\
+  \ text, including sections for highlights, features, improvements, fixes, deprecations,\
+  \ known issues, and metadata.\n- The CLI is restructured so that `show` is a subcommand\
+  \ group (`gitsummary show commit <sha>`, `gitsummary show release-note <rev>`),\
+  \ and a new `show release-note` command retrieves and displays stored release notes\
+  \ from Git Notes."
 impact_scope: public_api
-is_breaking: false
+is_breaking: true
 technical_highlights:
-- Added def `_get_llm_provider`
-- Added def `_format_release_note_markdown`
-- Added def `_format_release_note_text`
-- Added error handling
+- Introduces a `ReleaseNote` core data model (inferred from imports and usage) that
+  encapsulates header, highlights, features, improvements, fixes, deprecations, known
+  issues, call-to-action, and metadata, and provides `to_yaml()` for serialization.
+- 'Extends the `generate release-notes` CLI command with multiple new Typer options:
+  `--format/-f`, `--output/-o`, `--llm/--no-llm`, `--provider/-p`, `--model/-m`, `--product`,
+  `--version/-v`, and `--store`, significantly enriching the command’s interface.'
+- Adds logic to compute sensible defaults for `product_name` (repository directory
+  name via `repository_root()`) and `version` (derived from the end of the revision
+  range or the range itself).
+- Integrates with an LLM abstraction layer via `_get_llm_provider`, which uses `list_available_providers`,
+  `get_provider`, and a `ProviderConfig` to dynamically select and configure an LLM
+  provider; if no provider is available or an error occurs, the system falls back
+  to heuristic generation and warns the user.
+- Implements two dedicated formatting helpers, `_format_release_note_markdown` and
+  `_format_release_note_text`, that render the `ReleaseNote` object into rich markdown
+  or plain text, including emojis, section headings, and a metadata footer with commit
+  counts and LLM provenance.
+- Adds Git Notes persistence for release notes using `save_release_note` and a dedicated
+  notes namespace (`refs/notes/report/release-note`), attaching the stored note to
+  the tip commit of the revision range; retrieval is handled by a new `show_release_note`
+  command (partially shown in the diff) using `load_release_note` and `resolve_revision`.
+- Restructures the CLI topology by creating a `show_app` Typer sub-application, registering
+  `show commit` and `show release-note` subcommands, and removing the old flat `show`
+  command from the root, which changes how users invoke show-related functionality.
+- Adds documentation updates in `docs/current_development_status.md` and a new "Future
+  Ideas" section in `docs/TODO.md` to capture planned enhancements like interactive
+  refinement, template customization, and multi-language support.
 tool_version: 0.1.0
