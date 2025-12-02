@@ -1,15 +1,47 @@
 commit_hash: 0b245086fd7ae4c4409700e5be5901bfa71b592b
 schema_version: 0.1.0
-intent_summary: Implement pluggable LLM provider architecture with OpenAI integration
-category: refactor
+intent_summary: Introduce a pluggable LLM provider architecture, wire it into the
+  analysis pipeline, and integrate OpenAI’s structured Responses API while keeping
+  backward-compatible hooks for legacy LLM usage.
+category: feature
 behavior_before: null
-behavior_after: null
-impact_scope: dependency
+behavior_after: The `gitsummary analyze` command can now optionally use a pluggable
+  LLM provider (currently OpenAI via the new `gitsummary.llm` package) to perform
+  structured semantic analysis of commits, configurable via CLI flags and environment
+  variables, with graceful fallback to heuristic-only analysis when no provider is
+  available.
+impact_scope: public_api
 is_breaking: false
 technical_highlights:
-- Added def `__init__`
-- Added def `_get_provider`
-- Added def `_extract_with_provider`
-- Removed def `__init__`
-- Removed def `__init__`
+- 'Extended the `gitsummary analyze` CLI command with new options: `--llm/--no-llm`
+  to toggle LLM usage, `--provider/-p` (env: `GITSUMMARY_PROVIDER`) to select an LLM
+  backend, and `--model/-m` (env: `GITSUMMARY_MODEL`) to choose a provider-specific
+  model; `--json` still implies `--dry-run`.'
+- Replaced direct use of `build_commit_artifact` in the CLI with an `AnalyzerService`
+  instance that is created once per invocation (`AnalyzerService(use_llm=use_llm,
+  provider_name=provider)`) and reused across commits for batch efficiency.
+- Added user-facing logging in the CLI to indicate whether analysis is LLM-backed
+  or heuristic-only, and which provider is being used when not in dry-run mode.
+- Enhanced the `extractors` package to expose additional LLM-related symbols, including
+  `create_openai_provider_function`, while keeping the legacy `LLMProvider`, `get_llm_provider`,
+  and `set_llm_provider` interface for backward compatibility.
+- Refactored `LLMExtractor` to support both the legacy callable provider interface
+  and a new provider-name-based architecture that resolves providers from the `gitsummary.llm`
+  registry via `get_provider`, with lazy initialization and logging-based error handling.
+- 'Implemented a two-tier extraction flow in `LLMExtractor.extract`: first attempt
+  structured extraction via the new provider API (`extract_structured` with Pydantic
+  `CommitExtractionSchema` and prompt templates), and if unavailable or failing, fall
+  back to the legacy provider function and parse its dict output into `ExtractionResult`.'
+- Introduced `_extract_with_provider` in `LLMExtractor` to encapsulate the new structured-output
+  path using `COMMIT_ANALYSIS_SYSTEM_PROMPT` and `build_commit_analysis_prompt`, returning
+  an `ExtractionResult` only when the provider call succeeds and yields a parsed schema
+  instance.
+- Added `create_openai_provider_function` as a bridge utility that constructs a new-style
+  OpenAI provider (`ProviderConfig`, `get_provider('openai')`) and wraps it in a legacy
+  `LLMProvider` callable, internally using `extract_structured` and returning the
+  parsed dict or `None` on failure.
+- Updated documentation (`docs/TODO.md`, `docs/current_development_status.md`) to
+  mark earlier design tasks as completed, describe the new LLM provider architecture,
+  enumerate implemented vs. placeholder providers, and clarify remaining work for
+  Step 9 (additional providers, confidence scoring, batching, token reporting).
 tool_version: 0.1.0
