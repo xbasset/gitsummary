@@ -1,11 +1,17 @@
 commit_hash: 1771f759724a742291cdf27e27d0c7249db707e9
 schema_version: 0.1.0
-intent_summary: Update development dependencies for testing
+intent_summary: Update development testing dependency version and remove testing tools
+  from the main runtime requirements file so they are only used in the dev environment.
 category: chore
 behavior_before: null
 behavior_after: null
-impact_scope: docs
+impact_scope: dependency
 is_breaking: false
 technical_highlights:
-- Added tests
+- Bumped pytest-cov version constraint in requirements-dev.txt from '>=4.0.0' to '>=5.0.0',
+  aligning dev testing tools with a newer major release.
+- Removed pytest and pytest-cov entries (and their comment header) from requirements.txt
+  so they are no longer installed as part of the production/runtime dependency set.
+- Kept pytest listed only in requirements-dev.txt, clearly separating dev/test dependencies
+  from runtime dependencies.
 tool_version: 0.1.0
