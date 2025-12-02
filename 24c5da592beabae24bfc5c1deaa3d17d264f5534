@@ -1,15 +1,55 @@
 commit_hash: 24c5da592beabae24bfc5c1deaa3d17d264f5534
 schema_version: 0.1.0
-intent_summary: 'Merge pull request #12 from xbasset/step-10-llm-release-notes'
+intent_summary: Introduce LLM-assisted release-notes generation with configurable
+  providers/models, Git Notes storage, reusable markdown/text formatters, and a richer
+  `show`/`generate` CLI structure, and update documentation accordingly.
 category: feature
-behavior_before: null
-behavior_after: null
+behavior_before: The `generate release-notes` command produced simple heuristic, markdown-only
+  release notes directly from analyzed artifacts, without LLM synthesis, without configurable
+  LLM providers/models, without Git Notes storage, and there was no dedicated way
+  to show stored release notes via `gitsummary show release-note`. Impact and changelog
+  markdown formatting logic lived inline in the CLI command module.
+behavior_after: The `generate release-notes` command now uses LLM-assisted synthesis
+  by default (with a `--no-llm` fallback to heuristics), supports `--provider`, `--model`,
+  `--product`, `--version`, `--format` (markdown/yaml/text), and `--store` to persist
+  release notes into Git Notes attached to the tip commit; markdown/text formatting
+  for changelog, impact, and release notes is delegated to shared renderer functions,
+  and users can retrieve stored release notes via `gitsummary show release-note <rev>`
+  using a new `show` subcommand group. Documentation and getting-started guides are
+  updated to describe these capabilities and workflows.
 impact_scope: public_api
 is_breaking: false
 technical_highlights:
-- Added def `_get_llm_provider`
-- Added def `generate_impact`
-- Added def `show_release_note`
-- Removed def `_format_changelog_markdown`
-- Removed def `_write_output`
+- 'Refactors the CLI structure to introduce a `show_app` Typer sub-application: `gitsummary
+  show commit <sha>` for commit artifacts and `gitsummary show release-note <rev>`
+  for stored release notes, instead of a single flat `show` command.'
+- 'Extends the `generate release-notes` command signature with multiple options: `--format/-f`
+  (markdown|yaml|text), `--llm/--no-llm`, `--provider/-p`, `--model/-m`, `--product`,
+  `--version/-v`, and `--store`, while preserving the core positional `revision_range`
+  argument.'
+- Introduces integration with an LLM provider abstraction via a helper `_get_llm_provider(provider_name,
+  model)` that uses `llm.get_provider`, `llm.list_available_providers`, and a `ProviderConfig`
+  object, with graceful fallback to heuristic generation when no provider is available
+  or an error occurs.
+- Adds logic to infer sensible defaults for `product_name` (repository directory name
+  via `repository_root()`, falling back to 'Project') and `version` (parsed from the
+  end of the revision range, e.g., `v0.1.0..v0.2.0` → `v0.2.0`).
+- Switches release-notes generation from a simple inline markdown builder to a higher-level
+  `ReporterService.generate_llm_release_notes(...)` call that returns a `ReleaseNote`
+  domain object, which can be serialized to YAML (`to_yaml`) and rendered via shared
+  renderer functions (`format_release_note_markdown`, `format_release_note_text`).
+- Implements Git Notes persistence for release notes using `save_release_note(tip_sha,
+  yaml_content)` under a dedicated namespace (`refs/notes/report/release-note`), and
+  reports success with a colored Typer message including the short SHA.
+- Moves markdown formatting responsibilities for changelog and impact reports out
+  of the CLI command into reusable renderer functions (`format_changelog_markdown`,
+  `format_impact_markdown`), simplifying the CLI layer and centralizing presentation
+  logic.
+- Adds a guard in `generate_release_notes` to detect when no commits in the range
+  have been analyzed artifacts, emitting a clear warning and exiting with non-zero
+  status to avoid silently generating empty or misleading release notes.
+- Updates multiple docs (`README.md`, `getting_started.md`, `current_development_status.md`,
+  `TODO.md`) to document LLM-assisted release notes, Git Notes storage, new CLI subcommands
+  and flags, and future ideas like interactive refinement, template customization,
+  and multi-language support.
 tool_version: 0.1.0
