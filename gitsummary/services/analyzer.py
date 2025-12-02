@@ -43,6 +43,7 @@ class AnalyzerService:
         self._llm_extractor = LLMExtractor(provider_name=provider_name) if use_llm else None
         self._heuristic_extractor = HeuristicExtractor()
         self._provider_initialized = False
+        self._provider_ready = False
 
     def _ensure_provider(self) -> bool:
         """Ensure the LLM provider is initialized.
@@ -53,7 +54,7 @@ class AnalyzerService:
             return False
 
         if self._provider_initialized:
-            return self._llm_extractor is not None
+            return self._provider_ready
 
         self._provider_initialized = True
 
@@ -61,10 +62,12 @@ class AnalyzerService:
         if self._llm_extractor is not None:
             try:
                 # Trigger provider initialization
-                self._llm_extractor._get_provider()
-                return True
+                provider = self._llm_extractor._get_provider()
+                self._provider_ready = provider is not None
+                return self._provider_ready
             except Exception as e:
                 logger.warning(f"LLM provider not available: {e}")
+                self._provider_ready = False
                 return False
 
         return False

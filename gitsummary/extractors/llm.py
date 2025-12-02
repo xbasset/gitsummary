@@ -94,15 +94,19 @@ class LLMExtractor:
         if self._llm_provider is not None:
             return self._llm_provider
 
-        if self._provider_name:
-            try:
-                from ..llm import get_provider
+        try:
+            from ..llm import get_provider
 
-                self._llm_provider = get_provider(self._provider_name)
-                return self._llm_provider
-            except Exception as e:
-                logger.warning(f"Failed to initialize LLM provider '{self._provider_name}': {e}")
-                return None
+            # If an explicit provider name is supplied, use it; otherwise fall
+            # back to the configured default provider (e.g., openai).
+            self._llm_provider = get_provider(self._provider_name)
+            return self._llm_provider
+        except Exception as e:
+            logger.warning(
+                f"Failed to initialize LLM provider "
+                f"'{self._provider_name or 'default'}': {e}"
+            )
+            return None
 
         return None
 
