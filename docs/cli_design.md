@@ -173,13 +173,15 @@ gitsummary generate <report-type> --all
 | `changelog` | Conventional changelog format (features, fixes, breaking) |
 | `release-notes` | User-facing release notes with context |
 | `impact` | Technical impact analysis for reviewers |
+| `feed` | Scrollable HTML feed of commits (mobile-friendly, playful CTAs) |
 
 **Options:**
 | Option | Description |
 |--------|-------------|
 | `--format <fmt>` | Output format: `markdown` (default), `json`, `text` |
 | `--output, -o <file>` | Write to file instead of stdout |
-| `--include-unanalyzed` | Include commits without artifacts (as placeholders) |
+| `--include-unanalyzed` | Include commits without artifacts (as placeholders) for `changelog` |
+| `--skip-unanalyzed` | Hide missing artifacts for `feed` (default shows them as CTAs) |
 
 **Examples:**
 ```bash
@@ -191,6 +193,9 @@ gitsummary generate release-notes v1.0..v2.0 -o RELEASE_NOTES.md
 
 # Generate JSON for CI pipelines
 gitsummary generate changelog v1.0..v2.0 --format json
+
+# Generate a playful HTML feed (default writes <project>-feed.html)
+gitsummary generate feed v1.0..v2.0 --open
 ```
 
 **Output (changelog, markdown):**

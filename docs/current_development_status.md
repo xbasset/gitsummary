@@ -7,6 +7,7 @@
 - For long ranges, run `gitsummary list <range> --missing` first, then `gitsummary analyze <range> --provider openai` without `--force` to skip already analyzed commits and avoid long reruns.
 - If the LLM request times out, switch to a lighter model (e.g., `--model gpt-4.1-mini`) when generating release notes: `gitsummary generate release-notes <range> --provider openai --model gpt-4.1-mini --store`.
 - Git Notes writes may require elevated permissions on some systems; rerun commands with appropriate privileges if you see `Operation not permitted` errors when creating notes or tags.
+- New: `gitsummary generate feed <range>` outputs a mobile-friendly HTML feed. Missing artifacts show playful CTAs with copyable `gitsummary analyze` commands.
 
 ## Step 1: Ground the Problem & Constraints (Complete)
 - **Status:** Done.
