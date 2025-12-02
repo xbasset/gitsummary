@@ -1,0 +1,20 @@
+commit_hash: b65388ee225eb8a6a891aeb113658de733ddff42
+schema_version: 0.1.0
+intent_summary: Reformat the why.md documentation to use proper Markdown headings,
+  bullet lists, and horizontal rules for better readability and structure.
+category: chore
+behavior_before: null
+behavior_after: null
+impact_scope: docs
+is_breaking: false
+technical_highlights:
+- Converted the top-level title into an H1 Markdown heading using a leading '#'.
+- Promoted section labels like 'Goals', 'Motivations', 'Users', 'Explicit Goals',
+  and 'Implicit Goals' to H2 headings using '##'.
+- Replaced custom bullet characters and tab-indented lists with standard Markdown
+  hyphen-based lists, including nested bullets for subpoints.
+- Replaced decorative separator characters (⸻) with standard Markdown horizontal rules
+  ('---').
+- Normalized numbered lists to standard Markdown ordered list syntax starting at 1
+  for each section.
+tool_version: 0.1.0
