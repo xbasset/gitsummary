@@ -1,10 +1,32 @@
 commit_hash: a959304678706cccf00736137ac7b9d0f891f2ff
 schema_version: 0.1.0
-intent_summary: Enhance LLM provider configuration in release notes generation
-category: refactor
-behavior_before: null
-behavior_after: null
+intent_summary: Refines LLM provider initialization so that when a model override
+  is specified, a ProviderConfig is created and populated with an API key from the
+  configuration manager, while otherwise deferring configuration to the provider registry.
+category: feature
+behavior_before: _get_llm_provider always instantiated an empty ProviderConfig and
+  only optionally set the model field; API keys were not explicitly fetched or injected
+  here, and default configuration handling by the registry/config manager could be
+  bypassed by the always-present config object.
+behavior_after: _get_llm_provider now passes no config when no model override is given
+  (letting the registry/config manager fully handle configuration and API keys), and
+  when a model override is provided it creates a ProviderConfig with that model and
+  attempts to fetch and set the provider-specific API key via get_config_manager before
+  calling get_provider.
 impact_scope: internal
 is_breaking: false
-technical_highlights: []
+technical_highlights:
+- Introduces use of get_config_manager from the llm package to centralize API key
+  retrieval for providers.
+- Changes ProviderConfig construction from an always-instantiated empty object to
+  a conditional Optional[ProviderConfig] that is only created when a model override
+  is supplied.
+- When a model is specified, the function now fetches an API key via config_manager.get_api_key(provider_name,
+  prompt_if_missing=False) and assigns it to config.api_key if present, ensuring explicit
+  configs still carry credentials.
+- If no model is provided, the function now passes None as the config to get_provider,
+  allowing the provider registry/config manager to inject configuration and API keys
+  automatically.
+- Improves import structure by using a multi-line import that includes get_config_manager
+  alongside get_provider and list_available_providers.
 tool_version: 0.1.0
