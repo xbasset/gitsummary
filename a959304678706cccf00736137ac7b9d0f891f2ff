@@ -1,0 +1,10 @@
+commit_hash: a959304678706cccf00736137ac7b9d0f891f2ff
+schema_version: 0.1.0
+intent_summary: Enhance LLM provider configuration in release notes generation
+category: refactor
+behavior_before: null
+behavior_after: null
+impact_scope: internal
+is_breaking: false
+technical_highlights: []
+tool_version: 0.1.0
