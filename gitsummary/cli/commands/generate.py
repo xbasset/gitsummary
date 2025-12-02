@@ -244,7 +244,11 @@ def generate_release_notes(
 def _get_llm_provider(provider_name: Optional[str], model: Optional[str]):
     """Get an LLM provider for synthesis."""
     try:
-        from ...llm import get_provider, list_available_providers
+        from ...llm import (
+            get_config_manager,
+            get_provider,
+            list_available_providers,
+        )
         from ...llm.base import ProviderConfig
 
         # If no provider specified, try to get a default
@@ -254,10 +258,16 @@ def _get_llm_provider(provider_name: Optional[str], model: Optional[str]):
                 return None
             provider_name = available[0]
 
-        # Build config
-        config = ProviderConfig()
+        # Build config. If no model override is provided, delegate to the
+        # registry/config manager so it can inject API keys from env/config.
+        config: Optional[ProviderConfig] = None
         if model:
-            config.model = model
+            config = ProviderConfig(model=model)
+            # Ensure API key is set when we supply an explicit config
+            cm = get_config_manager()
+            api_key = cm.get_api_key(provider_name, prompt_if_missing=False)
+            if api_key:
+                config.api_key = api_key
 
         return get_provider(provider_name, config)
     except Exception:
