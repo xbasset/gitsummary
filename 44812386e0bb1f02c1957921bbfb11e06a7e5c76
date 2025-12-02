@@ -1,0 +1,16 @@
+commit_hash: 44812386e0bb1f02c1957921bbfb11e06a7e5c76
+schema_version: 0.1.0
+intent_summary: Add a new documentation page describing gitsummary's goals, motivations,
+  and target users.
+category: chore
+behavior_before: null
+behavior_after: null
+impact_scope: docs
+is_breaking: false
+technical_highlights:
+- Introduces a new Markdown file docs/why.md with high-level product documentation
+  rather than code changes.
+- Content outlines goals (semantic understanding of git changes), motivations (poor
+  commit messages, lack of PR metadata), and target users (developers, release managers,
+  ops, CI/CD).
+tool_version: 0.1.0
