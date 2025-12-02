@@ -1,0 +1,21 @@
+commit_hash: c2a17a13f04192b55a425f36ca4af771b93c1bc3
+schema_version: 0.1.0
+intent_summary: Clarifies and consolidates the documentation in docs/why.md by refining
+  goals, motivations, and user descriptions without changing any code behavior.
+category: chore
+behavior_before: null
+behavior_after: null
+impact_scope: docs
+is_breaking: false
+technical_highlights:
+- Rewords the goal about artifact storage to specify immediate use of Git Notes plus
+  parallel YAML emission for debugging.
+- Clarifies that developers want an automated way to understand behavior and impact,
+  not just to "get" them, improving phrasing precision.
+- Expands and restructures the motivations list to emphasize bridging code and documentation,
+  long-term knowledge accumulation, agent safety, and scalable infrastructure.
+- Collapses the previously separate emoji-labeled 'Users' and 'Motivations' sections
+  into the main narrative, reducing duplication and making the document more linear.
+- Refines the target user descriptions to explicitly include AI agents, project tooling,
+  and a broader range of developer roles, while keeping the same conceptual audience.
+tool_version: 0.1.0
