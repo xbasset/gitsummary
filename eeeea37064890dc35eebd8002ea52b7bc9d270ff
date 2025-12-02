@@ -1,0 +1,15 @@
+commit_hash: eeeea37064890dc35eebd8002ea52b7bc9d270ff
+schema_version: 0.1.0
+intent_summary: Add a TODO documentation file noting an investigation task about using
+  git notes for Claude conversation history, referencing the cnotes project.
+category: chore
+behavior_before: null
+behavior_after: null
+impact_scope: docs
+is_breaking: false
+technical_highlights:
+- Introduces a new docs/TODO.md file to track a future task rather than implementing
+  any functional code changes.
+- References the external GitHub project imjasonh/cnotes as a potential model for
+  storing conversation history in git notes.
+tool_version: 0.1.0
