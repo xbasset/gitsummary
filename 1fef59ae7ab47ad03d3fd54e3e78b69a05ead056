@@ -1,0 +1,24 @@
+commit_hash: 1fef59ae7ab47ad03d3fd54e3e78b69a05ead056
+schema_version: 0.1.0
+intent_summary: Improve readability and clarity of documentation and internal Python
+  code formatting without changing runtime behavior or public interfaces.
+category: refactor
+behavior_before: null
+behavior_after: null
+impact_scope: docs
+is_breaking: false
+technical_highlights:
+- README.md is rewritten to provide a more narrative, marketing-style introduction
+  and corrects the example CLI usage from `gitsummary collect --tag v0.1.0 v0.2.0`
+  to `gitsummary collect --tag v0.1.0 --tag v0.2.0`, clarifying that both arguments
+  are tags.
+- The long project specification document at docs/spec.md is removed from the repository,
+  indicating a cleanup or consolidation of design documentation.
+- 'Python functions in gitsummary/artifact.py are reformatted for clarity: long parameter
+  lists and complex expressions are split across multiple lines, and regex construction
+  is wrapped for readability, but logic and data flow remain identical.'
+- The deployment section’s configuration file detection and logging change counting
+  keep the same conditions and regex, only reformatted, so analyzer behavior is unchanged.
+- The symbol detection regex in _detect_symbols is preserved exactly while being split
+  across lines, maintaining the same matching semantics.
+tool_version: 0.1.0
