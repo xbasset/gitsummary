@@ -1,15 +1,28 @@
 commit_hash: e9ffd5bc479e5772c3f92e893d3c97e9f18927e9
 schema_version: 0.1.0
-intent_summary: Add testing framework configuration and initial test files
-category: feature
+intent_summary: Introduce pytest-based testing infrastructure, shared fixtures, and
+  initial unit tests for the gitsummary commit analysis and CLI formatting logic,
+  along with adding test dependencies to project requirements.
+category: chore
 behavior_before: null
 behavior_after: null
-impact_scope: dependency
+impact_scope: test
 is_breaking: false
 technical_highlights:
-- Added def `simple_commit`
-- Added def `fix_commit`
-- Added def `breaking_commit`
-- Added error handling
-- Added tests
+- Configured pytest via pytest.ini to discover tests under the tests/ package with
+  test_*.py naming and to run with verbose output, short tracebacks, and DeprecationWarning
+  filtering.
+- Added a dedicated requirements-dev.txt for development/test dependencies (pytest,
+  pytest-cov) and also included pytest and pytest-cov in the main requirements.txt,
+  with slightly different minimum versions for pytest-cov between dev and runtime
+  requirements.
+- Introduced a rich conftest.py providing reusable pytest fixtures that construct
+  realistic CommitInfo, CommitDiff, CommitArtifact, and ExtractionResult objects,
+  as well as lists of these, to support higher-level tests.
+- Created an initial tests package (tests/__init__.py) and at least one test module
+  (test_cli_formatters.py) that validates behavior of CLI formatter functions (human,
+  brief, JSON, YAML, and status formatting) using the shared fixtures.
+- Established a structure that distinguishes between feature, fix, breaking, security,
+  docs, chore, and test-only commits via fixture data, enabling comprehensive scenario
+  coverage in future tests.
 tool_version: 0.1.0
