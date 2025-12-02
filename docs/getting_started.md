@@ -81,7 +81,7 @@ gitsummary --help
 │ analyze   Extract semantic understanding from commits and store as artifacts. │
 │ generate  Generate reports from analyzed artifacts.                           │
 │ list      List commits and their analysis status.                             │
-│ show      Display artifacts for commits.                                      │
+│ show      Display artifacts or stored reports.                          │
 │ version   Print version information.                                          │
 ╰───────────────────────────────────────────────────────────────────────────────╯
 ```
@@ -207,6 +207,9 @@ gitsummary list HEAD~3..HEAD
 # Show artifact for a specific commit
 gitsummary show HEAD
 
+# Show a stored release note attached to a tip commit/tag
+gitsummary show release-note v1.1.0
+
 # Show as JSON
 gitsummary show HEAD --json
 
@@ -245,7 +248,7 @@ Schema: 0.2.0
 # Generate a changelog
 gitsummary generate changelog HEAD~5..HEAD
 
-# Generate release notes
+# Generate release notes (LLM by default; use --no-llm to disable)
 gitsummary generate release-notes v1.0.0..v1.1.0
 
 # Generate impact summary
@@ -257,6 +260,8 @@ gitsummary generate changelog HEAD~5..HEAD -o CHANGELOG.md
 # Output as JSON (for CI pipelines)
 gitsummary generate changelog HEAD~5..HEAD --format json
 ```
+
+Release notes are stored in Git Notes under `refs/notes/report/release-note` when you pass `--store`.
 
 ---
 
@@ -355,7 +360,9 @@ git push origin refs/notes/intent
 | `gitsummary show <commit>` | Display artifact for a commit |
 | `gitsummary show <range> --brief` | One-line summary per commit |
 | `gitsummary generate changelog <range>` | Generate changelog |
+| `gitsummary generate impact <range>` | Generate impact report |
 | `gitsummary generate release-notes <range>` | Generate release notes |
+| `gitsummary show release-note <rev>` | Show stored release note for a commit/tag |
 
 ---
 
@@ -364,4 +371,3 @@ git push origin refs/notes/intent
 - Read `docs/cli_design.md` for full command reference
 - Check `docs/storage_layout.md` for artifact schema details
 - See `docs/project_summary.md` for architectural overview
-

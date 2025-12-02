@@ -49,8 +49,11 @@ gitsummary generate changelog v1.0..v2.0
 *Reads stored artifacts and produces a formatted changelog.*
 
 ```bash
-# Generate release notes to file
-gitsummary generate release-notes v1.0..v2.0 -o RELEASE_NOTES.md
+# Release notes (LLM by default; use --no-llm to skip)
+gitsummary generate release-notes v1.0..v2.0 -o RELEASE_NOTES.md --store
+
+# Impact summary
+gitsummary generate impact v1.0..v2.0
 
 # Generate JSON for CI pipelines
 gitsummary generate changelog v1.0..v2.0 --format json
@@ -70,6 +73,9 @@ gitsummary list v1.0..v2.0 --date
 
 # Find commits that need analysis
 gitsummary list v1.0..v2.0 --missing
+
+# Show stored release notes for a revision (tip commit/tag)
+gitsummary show release-note v2.0
 ```
 
 ## The Two-Phase Model
@@ -84,10 +90,9 @@ Raw Git Data  ──[analyze]──▶  Semantic Artifacts  ──[generate]─�
 
 ## Development
 
-- **Status:** Early Development (Step 4: CLI Design Complete)
+- **Status:** Active development (LLM-assisted release notes shipped).
 - **Focus:** Release Manager use case.
-- **Docs:** See `docs/project_summary.md` for architectural vision.
-- **CLI Spec:** See `docs/cli_design.md` for full command reference.
+- **Docs:** See `docs/project_summary.md` and `docs/cli_design.md` for architecture and CLI reference.
 
 ## Development Commands
 
@@ -98,6 +103,9 @@ python -m gitsummary --help
 # Run analysis (once implemented)
 python -m gitsummary analyze v0.1.0..v0.2.0
 
-# Generate changelog (once implemented)
+# Generate changelog
 python -m gitsummary generate changelog v0.1.0..v0.2.0
+
+# Generate release notes and store to Git Notes (refs/notes/report/release-note)
+python -m gitsummary generate release-notes v0.1.0..v0.2.0 --store
 ```
