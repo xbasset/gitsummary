@@ -1,0 +1,16 @@
+commit_hash: 41a14e9ac275a1310ade9d3527f95903ad324a8b
+schema_version: 0.1.0
+intent_summary: Expand the why.md documentation with explicit and implicit goals,
+  user types, and motivations for the project’s Git-notes-based metadata system.
+category: chore
+behavior_before: null
+behavior_after: null
+impact_scope: docs
+is_breaking: false
+technical_highlights:
+- Adds structured sections to docs/why.md describing explicit goals, implicit goals,
+  user categories, and motivations using markdown text and separators.
+- Clarifies the conceptual model and intended use cases for Git Notes–backed commit
+  metadata, AI agents, and tooling integration.
+- No code, configuration, or API changes—only documentation content updates.
+tool_version: 0.1.0
