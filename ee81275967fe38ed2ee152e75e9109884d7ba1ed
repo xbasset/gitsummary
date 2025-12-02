@@ -1,0 +1,25 @@
+commit_hash: ee81275967fe38ed2ee152e75e9109884d7ba1ed
+schema_version: 0.1.0
+intent_summary: Introduce initial project documentation for contributors and add a
+  minimal setuptools-based setup.py to install and expose the gitsummary CLI.
+category: feature
+behavior_before: null
+behavior_after: The project can now be installed via setup.py (e.g., `pip install
+  -e .`), which installs the `gitsummary` package with its Typer dependency and exposes
+  a `gitsummary` console script entry point; contributors also have documented guidelines
+  for structure, development, testing, and artifact handling.
+impact_scope: public_api
+is_breaking: false
+technical_highlights:
+- Adds AGENTS.md with detailed guidelines on project structure, coding style, testing
+  strategy, commit/PR practices, and artifact storage semantics, clarifying how to
+  work with the repository.
+- Introduces a minimal setup.py using setuptools and find_packages to package the
+  `gitsummary` module hierarchy.
+- Derives the package version dynamically by parsing the `__version__` attribute from
+  gitsummary/__init__.py, avoiding duplication of version strings.
+- Declares a runtime dependency on Typer (typer>=0.9) and enforces Python 3.10+ via
+  python_requires.
+- Registers a console_scripts entry point mapping the `gitsummary` command to `gitsummary.cli:app`,
+  wiring the CLI as an installable executable.
+tool_version: 0.1.0
