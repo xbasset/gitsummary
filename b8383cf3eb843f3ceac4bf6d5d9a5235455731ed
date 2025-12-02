@@ -1,0 +1,15 @@
+commit_hash: b8383cf3eb843f3ceac4bf6d5d9a5235455731ed
+schema_version: 0.1.0
+intent_summary: 'feat: Implement core pipeline (Steps 5, 6, 7)'
+category: feature
+behavior_before: null
+behavior_after: null
+impact_scope: dependency
+is_breaking: true
+technical_highlights:
+- Added def `_default_llm_provider`
+- Added def `set_llm_provider`
+- Added def `get_llm_provider`
+- Removed def `date_range`
+- Removed def `_section_intention`
+tool_version: 0.1.0
