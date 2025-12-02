@@ -72,5 +72,6 @@ show_app.command("release-note")(show.show_release_note)  # show release-note <r
 
 # Register generate subcommands
 generate_app.command("changelog")(generate.generate_changelog)
+generate_app.command("feed")(generate.generate_feed)
 generate_app.command("release-notes")(generate.generate_release_notes)
 generate_app.command("impact")(generate.generate_impact)

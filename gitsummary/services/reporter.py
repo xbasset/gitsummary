@@ -11,6 +11,8 @@ from typing import Dict, List, Optional, Tuple
 from ..core import CommitArtifact, CommitInfo
 from ..reports.release_notes import ReleaseNote
 from ..reporters import (
+    ArtifactFeedBuilder,
+    ArtifactFeedReport,
     ChangelogBuilder,
     ChangelogReport,
     ImpactBuilder,
@@ -32,6 +34,7 @@ class ReporterService:
         self._changelog_builder = ChangelogBuilder()
         self._impact_builder = ImpactBuilder()
         self._release_notes_classifier = ReleaseNotesClassifier()
+        self._feed_builder = ArtifactFeedBuilder()
 
     def generate_changelog(
         self,
@@ -60,6 +63,18 @@ class ReporterService:
     ) -> "ImpactReport":
         """Generate an impact analysis report."""
         return self._impact_builder.build(commits, artifacts)
+
+    def generate_artifact_feed(
+        self,
+        commits: List[CommitInfo],
+        artifacts: Dict[str, Optional[CommitArtifact]],
+        *,
+        include_unanalyzed: bool = True,
+    ) -> "ArtifactFeedReport":
+        """Generate a feed-friendly view of artifacts and commits."""
+        return self._feed_builder.build(
+            commits, artifacts, include_unanalyzed=include_unanalyzed
+        )
 
     def generate_llm_release_notes(
         self,

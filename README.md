@@ -57,6 +57,9 @@ gitsummary generate impact v1.0..v2.0
 
 # Generate JSON for CI pipelines
 gitsummary generate changelog v1.0..v2.0 --format json
+
+# Scrollable HTML artifact feed (writes <project>-feed.html by default)
+gitsummary generate feed v1.0..v2.0 --open
 ```
 
 ### 3. Inspect and Discover

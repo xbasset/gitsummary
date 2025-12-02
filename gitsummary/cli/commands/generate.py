@@ -9,6 +9,8 @@ Produces various reports from stored artifacts:
 from __future__ import annotations
 
 import json
+import re
+import webbrowser
 from pathlib import Path
 from typing import Optional
 
@@ -23,6 +25,7 @@ from ...infrastructure import (
     save_release_note,
 )
 from ...renderers import (
+    format_artifact_feed_html,
     format_changelog_markdown,
     format_impact_markdown,
     format_release_note_markdown,
@@ -104,6 +107,68 @@ def generate_changelog(
         output = format_changelog_markdown(revision_range, report)
 
     _write_output(output, output_file)
+
+
+def generate_feed(
+    revision_range: str = typer.Argument(
+        ...,
+        help="Revision range to generate an HTML artifact feed for.",
+    ),
+    output_file: Optional[str] = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Write to file instead of the default <project>-feed.html.",
+    ),
+    skip_unanalyzed: bool = typer.Option(
+        False,
+        "--skip-unanalyzed",
+        help="Hide commits without artifacts (by default they are included as friendly CTAs).",
+    ),
+    open_browser: bool = typer.Option(
+        False,
+        "--open",
+        help="Open the generated feed in your default browser.",
+    ),
+) -> None:
+    """Generate a scroll-friendly HTML feed of commits and artifacts."""
+    try:
+        commits = list_commits_in_range(revision_range)
+    except GitCommandError as exc:
+        typer.secho(f"Error: {exc}", err=True, fg=typer.colors.RED)
+        raise typer.Exit(code=2) from exc
+
+    if not commits:
+        typer.secho("No commits found.", err=True, fg=typer.colors.YELLOW)
+        raise typer.Exit(code=1)
+
+    shas = [c.sha for c in commits]
+    artifacts = load_artifacts_for_range(shas)
+
+    try:
+        project_name = Path(repository_root()).name
+    except GitCommandError:
+        project_name = "Project"
+
+    reporter = ReporterService()
+    feed = reporter.generate_artifact_feed(
+        commits,
+        artifacts,
+        include_unanalyzed=not skip_unanalyzed,
+    )
+
+    html_output = format_artifact_feed_html(project_name, revision_range, feed)
+
+    default_name = f"{_safe_project_name(project_name)}-feed.html"
+    output_path = Path(output_file) if output_file else Path(repository_root()) / default_name
+    output_path.write_text(html_output, encoding="utf-8")
+    typer.echo(f"Feed written to {output_path}")
+
+    if open_browser:
+        try:
+            webbrowser.open(output_path.resolve().as_uri())
+        except Exception:
+            typer.secho("Unable to open browser automatically.", err=True, fg=typer.colors.YELLOW)
 
 
 def generate_release_notes(
@@ -336,3 +401,10 @@ def _write_output(output: str, output_file: Optional[str]) -> None:
         typer.echo(f"Report written to {output_file}")
     else:
         typer.echo(output)
+
+
+def _safe_project_name(name: str) -> str:
+    """Convert project name to a filesystem-friendly slug."""
+    cleaned = re.sub(r"[^a-zA-Z0-9_-]+", "-", name.strip())
+    cleaned = cleaned.strip("-").lower()
+    return cleaned or "project"
