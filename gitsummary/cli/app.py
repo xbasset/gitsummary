@@ -26,6 +26,10 @@ app.add_typer(generate_app, name="generate")
 show_app = typer.Typer(help="Display stored artifacts and reports.")
 app.add_typer(show_app, name="show")
 
+# Create report subapp (preferred)
+report_app = typer.Typer(help="Unified entrypoint for report generation.")
+app.add_typer(report_app, name="report")
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Root Commands
@@ -75,3 +79,7 @@ generate_app.command("changelog")(generate.generate_changelog)
 generate_app.command("release-notes")(generate.generate_release_notes)
 generate_app.command("impact")(generate.generate_impact)
 
+# Register report subcommands (aliases to generate)
+report_app.command("changelog")(generate.generate_changelog)
+report_app.command("release-notes")(generate.generate_release_notes)
+report_app.command("impact")(generate.generate_impact)

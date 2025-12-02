@@ -14,7 +14,7 @@ from typing import Optional
 
 import typer
 
-from ...core import ChangeCategory, ReleaseNote
+from ...core import ChangeCategory
 from ...infrastructure import (
     GitCommandError,
     list_commits_in_range,
@@ -22,6 +22,13 @@ from ...infrastructure import (
     repository_root,
     save_release_note,
 )
+from ...renderers import (
+    format_changelog_markdown,
+    format_impact_markdown,
+    format_release_note_markdown,
+    format_release_note_text,
+)
+from ...reports import ReleaseNote
 from ...services import ReporterService
 
 
@@ -94,7 +101,7 @@ def generate_changelog(
         }
         output = json.dumps(result, indent=2)
     else:
-        output = _format_changelog_markdown(revision_range, report)
+        output = format_changelog_markdown(revision_range, report)
 
     _write_output(output, output_file)
 
@@ -227,9 +234,9 @@ def generate_release_notes(
     if output_format == "yaml":
         output = release_note.to_yaml()
     elif output_format == "text":
-        output = _format_release_note_text(release_note)
+        output = format_release_note_text(release_note)
     else:  # markdown
-        output = _format_release_note_markdown(release_note)
+        output = format_release_note_markdown(release_note)
 
     _write_output(output, output_file)
 
@@ -257,172 +264,6 @@ def _get_llm_provider(provider_name: Optional[str], model: Optional[str]):
         return None
 
 
-def _format_release_note_markdown(release_note: ReleaseNote) -> str:
-    """Format a release note as Markdown."""
-    lines = []
-
-    # Header
-    h = release_note.header
-    lines.append(f"# {h.product_name} {h.version} — {h.release_date}")
-    lines.append("")
-    lines.append(f"*{h.theme}*")
-    lines.append("")
-
-    # Highlights
-    if release_note.highlights:
-        lines.append("## 🚀 Highlights")
-        lines.append("")
-        for hl in release_note.highlights:
-            lines.append(f"- {hl.emoji} **{hl.type.title()}**: {hl.summary}")
-        lines.append("")
-
-    # New Features
-    if release_note.features:
-        lines.append("## 🆕 New Features")
-        lines.append("")
-        for feat in release_note.features:
-            lines.append(f"### {feat.title}")
-            lines.append("")
-            lines.append(feat.description)
-            lines.append("")
-            lines.append(f"*{feat.user_benefit}*")
-            lines.append("")
-
-    # Improvements
-    if release_note.improvements:
-        lines.append("## ✨ Improvements")
-        lines.append("")
-        for imp in release_note.improvements:
-            lines.append(f"- {imp.summary}")
-        lines.append("")
-
-    # Bug Fixes
-    if release_note.fixes:
-        lines.append("## 🛠️ Bug Fixes")
-        lines.append("")
-        for fix in release_note.fixes:
-            lines.append(f"- {fix.summary}")
-        lines.append("")
-
-    # Deprecations / Breaking Changes
-    if release_note.deprecations:
-        lines.append("## ⚠️ Deprecations & Breaking Changes")
-        lines.append("")
-        for dep in release_note.deprecations:
-            lines.append(f"### {dep.what}")
-            lines.append("")
-            lines.append(f"**Reason**: {dep.reason}")
-            lines.append("")
-            lines.append(f"**Migration**: {dep.migration}")
-            if dep.deadline:
-                lines.append(f"**Deadline**: {dep.deadline}")
-            lines.append("")
-
-    # Known Issues
-    if release_note.known_issues:
-        lines.append("## 📌 Known Issues")
-        lines.append("")
-        for issue in release_note.known_issues:
-            lines.append(f"- {issue.issue} *({issue.status})*")
-        lines.append("")
-
-    # Call to Action
-    if release_note.call_to_action:
-        cta = release_note.call_to_action
-        lines.append("## 📚 Learn More")
-        lines.append("")
-        if cta.documentation_url:
-            lines.append(f"- [Documentation]({cta.documentation_url})")
-        if cta.migration_guide_url:
-            lines.append(f"- [Migration Guide]({cta.migration_guide_url})")
-        if cta.support_url:
-            lines.append(f"- [Support]({cta.support_url})")
-        lines.append("")
-
-    # Footer with metadata
-    m = release_note.metadata
-    lines.append("---")
-    lines.append(
-        f"*{m.commit_count} commits, {m.analyzed_count} analyzed"
-        + (f" • Generated with {m.llm_provider}/{m.llm_model}" if m.llm_provider else "")
-        + "*"
-    )
-
-    return "\n".join(lines)
-
-
-def _format_release_note_text(release_note: ReleaseNote) -> str:
-    """Format a release note as plain text."""
-    lines = []
-
-    # Header
-    h = release_note.header
-    lines.append(f"{h.product_name} {h.version} — {h.release_date}")
-    lines.append("=" * len(lines[-1]))
-    lines.append("")
-    lines.append(h.theme)
-    lines.append("")
-
-    # Highlights
-    if release_note.highlights:
-        lines.append("HIGHLIGHTS")
-        lines.append("-" * 10)
-        for hl in release_note.highlights:
-            lines.append(f"  [{hl.type.upper()}] {hl.summary}")
-        lines.append("")
-
-    # New Features
-    if release_note.features:
-        lines.append("NEW FEATURES")
-        lines.append("-" * 12)
-        for feat in release_note.features:
-            lines.append(f"  * {feat.title}")
-            lines.append(f"    {feat.description}")
-            lines.append(f"    Why: {feat.user_benefit}")
-            lines.append("")
-
-    # Improvements
-    if release_note.improvements:
-        lines.append("IMPROVEMENTS")
-        lines.append("-" * 12)
-        for imp in release_note.improvements:
-            lines.append(f"  * {imp.summary}")
-        lines.append("")
-
-    # Bug Fixes
-    if release_note.fixes:
-        lines.append("BUG FIXES")
-        lines.append("-" * 9)
-        for fix in release_note.fixes:
-            lines.append(f"  * {fix.summary}")
-        lines.append("")
-
-    # Deprecations / Breaking Changes
-    if release_note.deprecations:
-        lines.append("DEPRECATIONS & BREAKING CHANGES")
-        lines.append("-" * 31)
-        for dep in release_note.deprecations:
-            lines.append(f"  * {dep.what}")
-            lines.append(f"    Reason: {dep.reason}")
-            lines.append(f"    Migration: {dep.migration}")
-            if dep.deadline:
-                lines.append(f"    Deadline: {dep.deadline}")
-            lines.append("")
-
-    # Known Issues
-    if release_note.known_issues:
-        lines.append("KNOWN ISSUES")
-        lines.append("-" * 12)
-        for issue in release_note.known_issues:
-            lines.append(f"  * {issue.issue} ({issue.status})")
-        lines.append("")
-
-    # Footer
-    m = release_note.metadata
-    lines.append("-" * 40)
-    lines.append(f"{m.commit_count} commits, {m.analyzed_count} analyzed")
-
-    return "\n".join(lines)
 
 
 def generate_impact(
@@ -467,29 +308,7 @@ def generate_impact(
         }
         output = json.dumps(result, indent=2)
     else:
-        lines = [
-            f"# Impact Analysis: {revision_range}",
-            "",
-            "## Summary",
-            f"- **Total commits:** {report.total_commits}",
-            f"- **Analyzed:** {report.analyzed_count}",
-            f"- **Breaking changes:** {report.breaking_count}",
-            "",
-            "## Impact Distribution",
-        ]
-
-        for scope, count in sorted(
-            report.scope_distribution.items(), key=lambda x: -x[1]
-        ):
-            lines.append(f"- {scope}: {count}")
-
-        if report.technical_highlights:
-            lines.append("")
-            lines.append("## Technical Highlights")
-            for hl in report.technical_highlights[:10]:
-                lines.append(f"- {hl}")
-
-        output = "\n".join(lines)
+        output = format_impact_markdown(revision_range, report)
 
     _write_output(output, output_file)
 
@@ -497,64 +316,6 @@ def generate_impact(
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
-
-
-def _format_changelog_markdown(revision_range: str, report) -> str:
-    """Format a changelog report as Markdown."""
-    lines = [f"# Changelog {revision_range}", ""]
-
-    # Features
-    if report.features:
-        lines.append("## Features")
-        for commit, artifact in report.features:
-            breaking = " **[BREAKING]**" if artifact.is_breaking else ""
-            lines.append(
-                f"- **{artifact.intent_summary}** ({commit.short_sha}){breaking}"
-            )
-            if artifact.behavior_after:
-                lines.append(f"  {artifact.behavior_after}")
-        lines.append("")
-
-    # Fixes
-    if report.fixes:
-        lines.append("## Fixes")
-        for commit, artifact in report.fixes:
-            lines.append(f"- **{artifact.intent_summary}** ({commit.short_sha})")
-        lines.append("")
-
-    # Security
-    if report.security:
-        lines.append("## Security")
-        for commit, artifact in report.security:
-            lines.append(f"- **{artifact.intent_summary}** ({commit.short_sha})")
-        lines.append("")
-
-    # Breaking Changes
-    if report.breaking_changes:
-        lines.append("## Breaking Changes")
-        for commit, artifact in report.breaking_changes:
-            lines.append(f"- **{artifact.intent_summary}** ({commit.short_sha})")
-            if artifact.behavior_before and artifact.behavior_after:
-                lines.append(f"  - Before: {artifact.behavior_before}")
-                lines.append(f"  - After: {artifact.behavior_after}")
-        lines.append("")
-
-    # Other
-    other = report.refactors + report.performance + report.chores
-    if other:
-        lines.append("## Other")
-        for commit, artifact in other:
-            lines.append(f"- {artifact.intent_summary} ({commit.short_sha})")
-        lines.append("")
-
-    # Unanalyzed
-    if report.unanalyzed:
-        lines.append("## Unanalyzed")
-        for commit in report.unanalyzed:
-            lines.append(f"- {commit.summary} ({commit.short_sha})")
-        lines.append("")
-
-    return "\n".join(lines)
 
 
 def _write_output(output: str, output_file: Optional[str]) -> None:
@@ -565,4 +326,3 @@ def _write_output(output: str, output_file: Optional[str]) -> None:
         typer.echo(f"Report written to {output_file}")
     else:
         typer.echo(output)
-

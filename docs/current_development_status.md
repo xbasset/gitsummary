@@ -117,11 +117,11 @@
 - **Status:** Done.
 - **Goal:** Implement LLM-assisted synthesis for high-quality release notes.
 - **Implemented:**
-  - `ReleaseNote` data model in `core/release_note.py` with comprehensive schema
+  - `ReleaseNote` data model in `reports/release_notes/model.py` with comprehensive schema
   - Git Notes storage at `refs/notes/report/release-note`
-  - LLM synthesis prompts and schemas in `llm/prompts.py` and `llm/schemas.py`
+  - LLM synthesis prompts and schemas split into `llm/prompts_release_note.py` and `llm/schemas_release_note.py`
   - `ReporterService.generate_llm_release_notes()` with both LLM and heuristic modes
-  - Enhanced `generate release-notes` CLI command:
+  - Enhanced CLI commands (`generate`/`report release-notes`):
     - `--llm/--no-llm` flag for LLM synthesis (default: enabled)
     - `--provider` and `--model` options for LLM selection
     - `--format` option supporting yaml, markdown, text

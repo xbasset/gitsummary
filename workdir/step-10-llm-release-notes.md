@@ -201,7 +201,7 @@ gitsummary show release-note abc123
 
 | File | Action | Purpose |
 |------|--------|---------|
-| `gitsummary/core/release_note.py` | ✅ Created | ReleaseNote Pydantic models |
+| `gitsummary/reports/release_notes/model.py` | ✅ Created | ReleaseNote Pydantic models |
 | `gitsummary/core/__init__.py` | ✅ Modified | Export ReleaseNote models |
 | `gitsummary/llm/schemas.py` | ✅ Modified | Add ReleaseNoteSynthesisSchema |
 | `gitsummary/llm/prompts.py` | ✅ Modified | Add release note synthesis prompt |
@@ -217,7 +217,7 @@ gitsummary show release-note abc123
 ### 7.2 Implementation Order (All Complete)
 
 1. ✅ Create workdir notebook (this document)
-2. ✅ Define ReleaseNote data model in `core/release_note.py`
+2. ✅ Define ReleaseNote data model in `reports/release_notes/model.py`
 3. ✅ Add `refs/notes/report/release-note` namespace support
 4. ✅ Create LLM prompts for release note synthesis
 5. ✅ Implement `ReporterService.generate_llm_release_notes()`
@@ -308,4 +308,3 @@ gitsummary show commit HEAD~5..HEAD --brief
 - Example release note format provided by user
 - Current `ReporterService` implementation: `gitsummary/services/reporter.py`
 - LLM provider architecture: `workdir/step-9-llm-provider-architecture.md`
-

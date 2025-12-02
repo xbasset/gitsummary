@@ -9,7 +9,6 @@ from typing import Optional
 
 import typer
 
-from ...core import ReleaseNote
 from ...infrastructure import (
     GitCommandError,
     list_commits_in_range,
@@ -17,6 +16,7 @@ from ...infrastructure import (
     load_release_note,
     resolve_revision,
 )
+from ...reports import ReleaseNote
 from ..formatters import (
     format_artifact_brief,
     format_artifact_human,
@@ -135,11 +135,10 @@ def show_release_note(
     if output_format == "yaml":
         typer.echo(release_note.to_yaml())
     elif output_format == "text":
-        from .generate import _format_release_note_text
+        from ...renderers import format_release_note_text
 
-        typer.echo(_format_release_note_text(release_note))
+        typer.echo(format_release_note_text(release_note))
     else:  # markdown
-        from .generate import _format_release_note_markdown
+        from ...renderers import format_release_note_markdown
 
-        typer.echo(_format_release_note_markdown(release_note))
-
+        typer.echo(format_release_note_markdown(release_note))

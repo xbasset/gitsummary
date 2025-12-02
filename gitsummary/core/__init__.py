@@ -7,7 +7,6 @@ Modules:
     models: Data classes representing git commit data
     enums: Change categories and impact scopes
     artifact: The CommitArtifact schema (Pydantic model)
-    release_note: The ReleaseNote schema (Pydantic model)
 """
 
 from __future__ import annotations
@@ -15,20 +14,6 @@ from __future__ import annotations
 from .artifact import CommitArtifact
 from .enums import ChangeCategory, ImpactScope
 from .models import CommitDiff, CommitInfo, DiffHunk, DiffStat, FileChange, FileDiff
-from .release_note import (
-    BugFix,
-    CallToAction,
-    Deprecation,
-    Feature,
-    Highlight,
-    Improvement,
-    KnownIssue,
-    ReleaseNote,
-    ReleaseNoteHeader,
-    ReleaseNoteMetadata,
-    SourceCommit,
-)
-
 __all__ = [
     # Models
     "CommitInfo",
@@ -42,17 +27,4 @@ __all__ = [
     "ImpactScope",
     # Commit Artifact
     "CommitArtifact",
-    # Release Note
-    "ReleaseNote",
-    "ReleaseNoteMetadata",
-    "ReleaseNoteHeader",
-    "SourceCommit",
-    "Highlight",
-    "Feature",
-    "Improvement",
-    "BugFix",
-    "Deprecation",
-    "KnownIssue",
-    "CallToAction",
 ]
-

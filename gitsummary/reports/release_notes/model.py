@@ -340,4 +340,3 @@ class ReleaseNote(BaseModel):
 
         data = yaml.safe_load(yaml_content)
         return cls.model_validate(data)
-
