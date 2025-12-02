@@ -1,0 +1,56 @@
+commit_hash: 2e815b4828f91172b66d9e9246f9fd86433b4a39
+schema_version: 0.1.0
+intent_summary: Introduce an initial gitsummary command-line tool that collects git
+  metadata for a commit range into JSON artifacts and allows querying specific facets
+  from those artifacts.
+category: feature
+behavior_before: null
+behavior_after: Users can now run `gitsummary collect <start_ref> <end_ref>` to generate
+  a structured JSON artifact under `.gitsummary/` describing commits, diffs, and inferred
+  metadata for the given range, and `gitsummary analyze <artifact_oid> --target <facet>`
+  to print a selected facet (e.g., context, implementation, impact, deployment) from
+  a stored artifact. The package is invocable via `python -m gitsummary` or as a module
+  import (`gitsummary.main`).
+impact_scope: public_api
+is_breaking: false
+technical_highlights:
+- Defines a `StorageLayout` abstraction that standardizes on-disk directories for
+  artifacts, manifests, index, schema, and notes under a `.gitsummary` root and ensures
+  schema versioning via a `schema/version` file.
+- Implements a thin `run_git` wrapper around `subprocess.run` that captures stdout/stderr
+  and raises a custom `GitCommandError` on non-zero exit codes, centralizing git invocation
+  error handling.
+- Collects commit metadata using `git log --format=%H\x1f%an\x1f%ad\x1f%s --date=iso-strict`
+  and parses it into strongly-typed `CommitInfo` dataclass instances with `datetime`
+  parsing via `fromisoformat`.
+- Computes diff statistics via `git diff --name-status` and `git diff --numstat`,
+  aggregating insertions, deletions, changed files, and per-file status into a `DiffStats`
+  dataclass.
+- Performs lightweight static analysis of diff text to detect added/removed Python
+  callables (`def`/`class` lines) and classifies them as added, removed, or modified
+  in a `FunctionChanges` dataclass by intersecting added/removed sets.
+- Scans diff text for simple code patterns (TODO, FIXME, logger, print) using case-insensitive
+  substring checks to infer qualitative code characteristics.
+- Detects dependency-related changes by looking for modifications to well-known dependency
+  files (requirements.txt, pyproject.toml, setup.cfg, Pipfile, package.json, poetry.lock,
+  requirements-dev.txt) and classifying them as added/removed/changed based on git
+  status codes.
+- Infers deployment-related signals by inspecting changed file paths for configuration/infrastructure-related
+  extensions (yaml/yml/ini/tf/Dockerfile) and keywords (docker/deploy), and by scanning
+  diff text for logging-related tokens.
+- Builds a structured artifact document with multiple top-level facets (`context`,
+  `intention`, `implementation`, `impact`, `maintainability`, `deployment`, `meta`),
+  including derived fields like authors, date range, branches containing the end ref,
+  commit summaries, domains (top-level path segments), and simple complexity/impact
+  heuristics.
+- Persists artifacts as content-addressed JSON files keyed by SHA-256 of the artifact
+  content, and maintains a manifest per commit range plus a `latest.json` index pointing
+  to the most recent artifact.
+- 'Provides two CLI subcommands via `argparse`: `collect` (which orchestrates git
+  data collection, analysis, artifact building, and writing) and `analyze` (which
+  loads an artifact by OID and prints a requested facet, with helpful error messages
+  on missing artifacts or facets).'
+- Exposes a `main` entry point both via `gitsummary.__init__` and `gitsummary.__main__`,
+  enabling execution as `python -m gitsummary` and as a callable from other Python
+  code.
+tool_version: 0.1.0
