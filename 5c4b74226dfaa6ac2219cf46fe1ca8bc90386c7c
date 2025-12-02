@@ -1,0 +1,51 @@
+commit_hash: 5c4b74226dfaa6ac2219cf46fe1ca8bc90386c7c
+schema_version: 0.1.0
+intent_summary: Rearchitects the gitsummary CLI around a Typer application, factors
+  artifact construction and analysis into dedicated modules, exposes version/app metadata,
+  and adds user-facing documentation for the CLI workflow.
+category: feature
+behavior_before: The CLI was implemented as a large argparse-based script in gitsummary.cli,
+  with git interaction, artifact construction, and storage layout all tightly coupled;
+  the package exposed a main() entry point, there was no structured analyzers/artifact
+  module, no explicit __version__, and no README describing how to use the CLI or
+  its subcommands.
+behavior_after: The CLI is now organized as a Typer app exposed as gitsummary.cli.app
+  and invoked via a small __main__.py wrapper; artifact construction is handled by
+  a dedicated build_artifact() function in gitsummary.artifact, analyzers for different
+  artifact facets are centralized in gitsummary.analyzers with a registry and run()
+  helper, the package exposes __version__ and app at the top level, and a README documents
+  installation and usage of collect/analyze/version commands and the artifact semantics.
+impact_scope: public_api
+is_breaking: true
+technical_highlights:
+- Replaces the previous monolithic argparse-based CLI implementation in gitsummary.cli
+  with a Typer-based architecture, where the Typer application object is defined in
+  cli.py and imported as app.
+- Introduces gitsummary.__init__ metadata, defining __version__ = '0.1.0' and exporting
+  app, changing the public surface from main() to app and version, which external
+  callers can import.
+- Refactors the module entry point in gitsummary.__main__ to import app and define
+  a thin main() wrapper that simply calls app(), simplifying the console entry path
+  for `python -m gitsummary`.
+- Adds a new gitsummary.analyzers package that defines a simple Analyzer type alias,
+  several facet-specific analyzer functions (context, intention, implementation, impact,
+  maintainability, deployment), and a registry dict used by available_targets() and
+  run() to dispatch analysis by target string.
+- 'Implements a new gitsummary.artifact module that encapsulates artifact construction:
+  it defines an ArtifactContext dataclass to derive authors, summary, and date_range
+  from a commit sequence, and a build_artifact() function that assembles a v0.1-spec
+  artifact dict with context, intention, implementation, impact, maintainability,
+  deployment, and meta sections.'
+- 'Uses lightweight heuristics in artifact sections: intention infers a domain (documentation,
+  infrastructure, maintainability, feature) from the latest commit message; implementation
+  computes changed files, LOC added/removed, top file extensions, and symbol changes
+  via regex-based _detect_symbols; impact/maintainability/deployment sections use
+  regexes over diff text to infer risk, test additions, technical debt markers, configuration
+  touches, and logging changes.'
+- Introduces a README.md that documents installation via pip + `python -m gitsummary`,
+  describes the collect and analyze workflows, explains artifact storage under .gitsummary/artifacts,
+  and documents the version command and development philosophy.
+- Adopts __future__.annotations in new/modified modules to enable postponed evaluation
+  of type hints and uses typing aliases (e.g., Mapping[str, object]) for clearer analyzer
+  and artifact interfaces.
+tool_version: 0.1.0
