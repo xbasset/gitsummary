@@ -1,11 +1,34 @@
 commit_hash: 1083ed0ed0550c24aa7e350ad9823edbc7ba32a8
 schema_version: 0.1.0
-intent_summary: Update README and documentation for release notes and impact summary
-  features
-category: feature
-behavior_before: null
-behavior_after: null
-impact_scope: internal
-is_breaking: false
-technical_highlights: []
+intent_summary: Remove the deprecated `report` CLI subcommand while updating README
+  and getting_started docs to reflect current release-notes, impact, and show behaviors,
+  including Git Notes storage.
+category: chore
+behavior_before: The CLI exposed both `generate` and a `report` subapp, where `report`
+  acted as an alias entrypoint for `changelog`, `release-notes`, and `impact` generation.
+  Documentation did not clearly describe impact generation, Git Notes storage for
+  release notes, or the ability of `show` to display stored reports, and still referenced
+  early-development status.
+behavior_after: The `report` subapp is no longer available; users must use `generate`
+  for `changelog`, `release-notes`, and `impact`. Documentation now describes `generate
+  impact`, clarifies that release notes are LLM-based by default and can be stored
+  in Git Notes with `--store`, explains `show release-note <rev>` for stored notes,
+  and updates project status and CLI descriptions accordingly.
+impact_scope: public_api
+is_breaking: true
+technical_highlights:
+- Removed the `report_app` Typer sub-application from `gitsummary/cli/app.py`, including
+  its registration on the root app and all `report` subcommands that aliased `generate`
+  commands.
+- Kept the `generate` and `show` Typer sub-apps as the sole entrypoints for report
+  generation and display, preserving existing `generate changelog`, `generate release-notes`,
+  `generate impact`, and `show release-note` commands.
+- Updated README examples to emphasize `generate release-notes` with `--store`, introduce
+  `generate impact`, and document `show release-note <rev>` for retrieving stored
+  release notes from Git Notes.
+- Clarified in docs that `show` can display both artifacts and stored reports, and
+  documented that release notes are stored under `refs/notes/report/release-note`
+  when `--store` is used.
+- Adjusted project status messaging from early design to active development and consolidated
+  documentation pointers to `project_summary.md` and `cli_design.md`.
 tool_version: 0.1.0
