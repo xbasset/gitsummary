@@ -5,13 +5,14 @@ Tests the AnalyzerService class and artifact building logic.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
 import logging
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from gitsummary.core import ChangeCategory, CommitArtifact, CommitDiff, CommitInfo, ImpactScope
 from gitsummary.extractors.base import ExtractionResult
+from gitsummary.llm.base import LLMResponse
 from gitsummary.services.analyzer import AnalyzerService, build_commit_artifact
 
 
@@ -203,6 +204,44 @@ class TestLLMIntegration:
             ):
                 result = service._ensure_provider()
                 assert result is False
+
+    def test_uses_default_provider_when_not_specified(
+        self, monkeypatch, simple_commit: CommitInfo
+    ) -> None:
+        """Default provider should be used when no provider_name is supplied."""
+
+        class DummyProvider:
+            def __init__(self) -> None:
+                self.calls = 0
+
+            def extract_structured(self, prompt, schema, system_prompt=None):
+                self.calls += 1
+                return LLMResponse(
+                    parsed={
+                        "intent_summary": "LLM summary",
+                        "category": "feature",
+                        "impact_scope": "public_api",
+                        "is_breaking": True,
+                        "behavior_before": "before state",
+                        "behavior_after": "after state",
+                        "technical_highlights": ["from llm"],
+                    }
+                )
+
+        dummy = DummyProvider()
+
+        monkeypatch.setattr("gitsummary.llm.get_provider", lambda name=None: dummy)
+        monkeypatch.setattr(
+            "gitsummary.services.analyzer.diff_patch_for_commit",
+            lambda sha: "",
+        )
+
+        service = AnalyzerService(use_llm=True, provider_name=None)
+        artifact = service.analyze(simple_commit)
+
+        assert dummy.calls >= 1
+        assert artifact.intent_summary == "LLM summary"
+        assert artifact.impact_scope == ImpactScope.PUBLIC_API
 
     def test_llm_extraction_failure_falls_back_to_heuristic(
         self, simple_commit: CommitInfo
