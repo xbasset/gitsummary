@@ -1,0 +1,17 @@
+commit_hash: c28a5b311dc6aee8df6c0abe9d1eb9672bec48aa
+schema_version: 0.1.0
+intent_summary: 'Update AGENTS.md to add a new documentation practice: maintaining
+  versioned Markdown notebooks in workdir/ to record development steps and design
+  decisions.'
+category: chore
+behavior_before: null
+behavior_after: null
+impact_scope: docs
+is_breaking: false
+technical_highlights:
+- Introduces a process requirement to keep a versioned Markdown notebook under workdir/
+  documenting steps, design choices, and milestones in the development process.
+- Clarifies that each notebook corresponds to a development step/milestone and that
+  new notebooks should be created for major milestones while keeping previous ones
+  for history.
+tool_version: 0.1.0
