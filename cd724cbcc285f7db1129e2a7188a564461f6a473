@@ -1,10 +1,28 @@
 commit_hash: cd724cbcc285f7db1129e2a7188a564461f6a473
 schema_version: 0.1.0
-intent_summary: Update LLM model references to gpt-5.1
+intent_summary: Update the default OpenAI LLM model and related documentation from
+  gpt-4o-2024-08-06 to gpt-5.1 and adjust structured-output model listings accordingly.
 category: chore
-behavior_before: null
-behavior_after: null
-impact_scope: internal
+behavior_before: The OpenAI provider factory used `gpt-4o-2024-08-06` as the default
+  model, CLI help text referenced that model as an example, and the OpenAI provider
+  docs and STRUCTURED_OUTPUT_MODELS list included `gpt-4o-2024-08-06` as a structured-output
+  model option.
+behavior_after: The OpenAI provider factory now defaults to `gpt-5.1`, CLI help text
+  uses `gpt-5.1` as the example model, the docs describe `gpt-5.1` as the default/latest
+  model, and the structured-output models list no longer mentions `gpt-4o-2024-08-06`
+  but redundantly includes `gpt-5.1` twice.
+impact_scope: public_api
 is_breaking: false
-technical_highlights: []
+technical_highlights:
+- Changed the default `model` parameter in `create_openai_provider_function` from
+  `gpt-4o-2024-08-06` to `gpt-5.1`, affecting callers that rely on the default without
+  specifying a model explicitly.
+- Updated the CLI `--model` option help string in `analyze.py` to use `gpt-5.1` as
+  the example provider-specific model name, aligning user-facing guidance with the
+  new default.
+- Adjusted OpenAI provider documentation comments to list `gpt-5.1` as the default
+  and removed `gpt-4o-2024-08-06` from the supported models docstring.
+- Modified `STRUCTURED_OUTPUT_MODELS` in `OpenAIProvider` to remove `gpt-4o-2024-08-06`
+  and (likely unintentionally) add a duplicate `gpt-5.1` entry, which is harmless
+  at runtime if treated as a set but indicates a minor list-definition oversight.
 tool_version: 0.1.0
