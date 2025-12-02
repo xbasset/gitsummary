@@ -1,0 +1,16 @@
+commit_hash: 084f834bff99ca5cef1a562121fcc5abc8869ee3
+schema_version: 0.1.0
+intent_summary: 'feat: Complete codebase reorganization following Clean Architecture
+  principles'
+category: feature
+behavior_before: null
+behavior_after: null
+impact_scope: public_api
+is_breaking: false
+technical_highlights:
+- Added def `__getattr__`
+- Added def `_format_json`
+- Added def `_context_analyzer`
+- Removed def `_format_json`
+- Removed def `_context_analyzer`
+tool_version: 0.1.0
