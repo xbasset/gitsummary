@@ -1,0 +1,32 @@
+commit_hash: f9d1a9cb3ce805b6d0b955cf484aa8c3162b1d89
+schema_version: 0.1.0
+intent_summary: Update the gitsummary specification document to describe a filesystem-based
+  `.gitsummary/` storage layout, rename the artifact identifier to `ART_OID`, and
+  clarify how artifacts are produced and analyzed in the POC versus future Git-native
+  plans.
+category: chore
+behavior_before: null
+behavior_after: null
+impact_scope: docs
+is_breaking: false
+technical_highlights:
+- Replaces the previous Git-native storage design (blob OIDs, custom refs, notes,
+  GC safety) with a POC-oriented design that stores artifacts and metadata under a
+  `.gitsummary/` directory in the working tree.
+- 'Defines a concrete directory layout: `.gitsummary/artifacts/<ART_OID>.json`, `manifests/by-range/<A>..<B>.json`,
+  `index/latest.json`, `schema/version`, and reserved `notes/` subdirectory.'
+- Clarifies that `<ART_OID>` is the SHA-256 hash of the artifact JSON content, with
+  serialization currently using natural `json.dumps` and no strict determinism requirements
+  in the POC.
+- 'Adjusts CLI examples and text to consistently use `ART_OID` instead of `ARTIFACT_ID`
+  and updates output messages to `Artifact created: <ART_OID>`.'
+- Documents that intention and implementation sections are inferred via LLM reasoning
+  and diff/heuristics only, explicitly stating that no AST parsing or traversal is
+  involved.
+- Updates data collection description to state that `blame` is collected by default
+  and that `collect` currently operates between two tags, with broader Git reference
+  support deferred.
+- Introduces an explicit separation between the current POC storage approach and a
+  future Git-native roadmap, noting that refs/notes/GC-safety mechanisms are future
+  work rather than part of the initial scope.
+tool_version: 0.1.0
