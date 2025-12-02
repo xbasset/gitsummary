@@ -1,15 +1,27 @@
 commit_hash: f875dbfd0618caf5c97d310696098daa36e781ee
 schema_version: 0.1.0
-intent_summary: 'Merge pull request #11 from xbasset/xbt/implement-tests'
-category: feature
+intent_summary: Introduce pytest-based testing infrastructure, development requirements,
+  and a comprehensive set of shared fixtures and initial CLI formatter tests for the
+  gitsummary project.
+category: chore
 behavior_before: null
 behavior_after: null
-impact_scope: public_api
+impact_scope: test
 is_breaking: false
 technical_highlights:
-- Added def `simple_commit`
-- Added def `fix_commit`
-- Added def `breaking_commit`
-- Added error handling
-- Added tests
+- Adds a pytest.ini configuration that scopes tests to the tests/ directory, uses
+  test_*.py naming, and enables verbose output with short tracebacks while suppressing
+  DeprecationWarning noise.
+- Introduces requirements-dev.txt to separate development dependencies, including
+  pytest and pytest-cov, with commented-out optional tools (ruff, mypy).
+- Creates a rich tests/conftest.py providing reusable pytest fixtures for CommitInfo,
+  CommitDiff, CommitArtifact, ExtractionResult objects, and lists of these, modeling
+  many realistic commit scenarios (feature, fix, breaking, security, docs, chore,
+  docs-only diffs, test-only diffs, etc.).
+- Adds tests/test_cli_formatters.py to validate CLI formatter functions (human, brief,
+  JSON, YAML, status) against the core domain models, ensuring correct inclusion and
+  formatting of fields like short SHA, intent summary, category, impact scope, and
+  breaking status.
+- Uses type annotations and __future__.annotations for forward references in test
+  code, keeping tests type-hint friendly without impacting runtime behavior.
 tool_version: 0.1.0
