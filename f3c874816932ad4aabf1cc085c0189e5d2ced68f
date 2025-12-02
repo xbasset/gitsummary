@@ -1,0 +1,15 @@
+commit_hash: f3c874816932ad4aabf1cc085c0189e5d2ced68f
+schema_version: 0.1.0
+intent_summary: Add documentation guidance for agent development planning and status
+  tracking using specific docs files.
+category: chore
+behavior_before: null
+behavior_after: null
+impact_scope: docs
+is_breaking: false
+technical_highlights:
+- Introduces a new 'Development Plan' section in AGENTS.md to standardize how development
+  is guided and tracked.
+- References docs/TODO.md as the canonical place for planning tasks and docs/current_development_status.md
+  for tracking current status.
+tool_version: 0.1.0
