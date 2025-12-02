@@ -1,0 +1,51 @@
+commit_hash: a864ebe93bfbc7d063557d7ce254a9b4c1230e02
+schema_version: 0.1.0
+intent_summary: Introduce the initial gitsummary Python package and Typer-based CLI
+  that collects git metadata into JSON artifacts and analyzes them via pluggable facet
+  renderers, along with basic docs and storage layout.
+category: feature
+behavior_before: null
+behavior_after: 'After this change, running `python -m gitsummary` (or `gitsummary`
+  if wired as a console script) provides three main commands: `version` prints the
+  CLI version; `collect --tag <A> <B>` validates the two tags, computes the commit
+  range, gathers commits, file changes, diff stats and patch via git, builds a structured
+  artifact describing context, intention, implementation, impact, maintainability,
+  and deployment, and persists it under `.gitsummary/artifacts/<ARTIFACT_ID>.json`;
+  and `analyze <ARTIFACT_ID> --target <facet>` loads a stored artifact by ID or unambiguous
+  prefix and prints the selected facet (e.g., `implementation`) as pretty-printed
+  JSON, with clear error messages for invalid tags, missing/ambiguous artifacts, or
+  unknown targets.'
+impact_scope: public_api
+is_breaking: false
+technical_highlights:
+- Defines `gitsummary` as a Python package with `__version__` and exposes the Typer
+  app via `__all__` and a `__main__.py` entry point so it can be run with `python
+  -m gitsummary`.
+- Implements a Typer-based CLI (`cli.py`) with subcommands `version`, `collect`, and
+  `analyze`, including argument/option validation, colored error output, and non-zero
+  exit codes on failures.
+- Introduces a `StorageLayout`-based artifact storage convention rooted at `<repo>/.gitsummary`,
+  abstracted behind `_artifact_layout()` so all commands share the same on-disk layout.
+- Adds an `artifact.build_artifact` pipeline that takes a commit range, commit list,
+  file changes, diff stats, and raw diff text and constructs a multi-section artifact
+  (`context`, `intention`, `implementation`, `impact`, `maintainability`, `deployment`,
+  `meta`).
+- Uses an `ArtifactContext` dataclass to derive higher-level context such as authors,
+  commit summaries, and ISO8601 date ranges from the raw commit list.
+- Implements heuristic classification in `_section_intention`, inferring a domain
+  (documentation, infrastructure, maintainability, or feature) from keywords in the
+  latest commit summary.
+- Computes implementation details such as changed file paths, LOC added/removed, top
+  file extensions, and symbol-level changes by regex-parsing the diff for added/removed
+  `def`/`class`/`function`/`module`/`interface` declarations.
+- Adds simple impact, maintainability, and deployment heuristics by scanning the diff
+  text for keywords (e.g., schema/migration/database, TODO/FIXME, logging calls, config
+  filenames) and deriving risk levels, scores, and configuration touches.
+- Provides an `analyzers` module that registers facet analyzers in a dictionary keyed
+  by target name (context, intention, implementation, impact, maintainability, deployment)
+  and returns pretty-printed JSON for each section, with a defensive error path for
+  unknown targets.
+- Documents project usage and conventions via new `README.md` and `AGENTS.md`, including
+  how to install dependencies, run the CLI, expected artifact locations, coding style,
+  and testing guidelines.
+tool_version: 0.1.0
