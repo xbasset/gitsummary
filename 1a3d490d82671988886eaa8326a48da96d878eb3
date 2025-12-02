@@ -1,0 +1,21 @@
+commit_hash: 1a3d490d82671988886eaa8326a48da96d878eb3
+schema_version: 0.1.0
+intent_summary: Introduce initial documentation for the gitsummary CLI tool, including
+  a high-level project specification and a detailed list of open design questions,
+  without changing any executable code.
+category: chore
+behavior_before: null
+behavior_after: null
+impact_scope: docs
+is_breaking: false
+technical_highlights:
+- Adds docs/spec.md describing the envisioned behavior of the gitsummary CLI, including
+  commands (`collect`, `analyze`), artifact schema sections (context, intention, implementation,
+  impact, maintainability, deployment, meta), and Git-native storage design (blob
+  OID as canonical ID, refs/gitsummary/main, optional refs/notes/gitsummary).
+- Introduces workdir/spec-open-questions.md capturing unresolved design decisions
+  around git range semantics, artifact identity and determinism, storage behavior,
+  collector behavior, analyzer architecture, and deployment facet specifics.
+- No source code, configuration, or public API is added or modified; the change is
+  purely documentation and planning.
+tool_version: 0.1.0
