@@ -22,6 +22,10 @@ app = typer.Typer(
 generate_app = typer.Typer(help="Generate reports from analyzed artifacts.")
 app.add_typer(generate_app, name="generate")
 
+# Create show subapp
+show_app = typer.Typer(help="Display stored artifacts and reports.")
+app.add_typer(show_app, name="show")
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Root Commands
@@ -60,11 +64,13 @@ from .commands import analyze, generate, list_cmd, show  # noqa: E402, F401
 
 # Register commands
 app.command()(analyze.analyze)
-app.command()(show.show)
 app.command("list")(list_cmd.list_commits)
+
+# Register show subcommands
+show_app.command("commit")(show.show)  # show commit <sha>
+show_app.command("release-note")(show.show_release_note)  # show release-note <revision>
 
 # Register generate subcommands
 generate_app.command("changelog")(generate.generate_changelog)
 generate_app.command("release-notes")(generate.generate_release_notes)
 generate_app.command("impact")(generate.generate_impact)
-

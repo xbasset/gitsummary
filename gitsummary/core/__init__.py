@@ -14,7 +14,6 @@ from __future__ import annotations
 from .artifact import CommitArtifact
 from .enums import ChangeCategory, ImpactScope
 from .models import CommitDiff, CommitInfo, DiffHunk, DiffStat, FileChange, FileDiff
-
 __all__ = [
     # Models
     "CommitInfo",
@@ -26,7 +25,6 @@ __all__ = [
     # Enums
     "ChangeCategory",
     "ImpactScope",
-    # Artifact
+    # Commit Artifact
     "CommitArtifact",
 ]
-

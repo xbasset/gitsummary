@@ -3,6 +3,10 @@
 Git Notes provide a way to attach additional data to commits
 without modifying them. This module handles all notes operations
 for the gitsummary artifact storage.
+
+Namespaces:
+    refs/notes/intent         - Per-commit semantic artifacts (CommitArtifact)
+    refs/notes/report/release-note - Release note reports (ReleaseNote)
 """
 
 from __future__ import annotations
@@ -13,6 +17,9 @@ from .git import GitCommandError, run
 
 # Default notes namespace for gitsummary artifacts
 NOTES_REF = "refs/notes/intent"
+
+# Notes namespace for release note reports
+RELEASE_NOTE_NOTES_REF = "refs/notes/report/release-note"
 
 
 def notes_exists(sha: str, notes_ref: str = NOTES_REF) -> bool:
@@ -75,4 +82,45 @@ def notes_remove(sha: str, notes_ref: str = NOTES_REF) -> bool:
         return True
     except GitCommandError:
         return False
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Release Note Storage
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def save_release_note(sha: str, content: str) -> None:
+    """Save a release note to Git Notes.
+
+    The release note is attached to the tip commit of the release range.
+
+    Args:
+        sha: The tip commit SHA to attach the release note to.
+        content: The release note content (YAML format).
+    """
+    notes_write(sha, content, notes_ref=RELEASE_NOTE_NOTES_REF)
+
+
+def load_release_note(sha: str) -> Optional[str]:
+    """Load a release note from Git Notes.
+
+    Args:
+        sha: The commit SHA to load the release note from.
+
+    Returns:
+        The release note content (YAML), or None if not found.
+    """
+    return notes_read(sha, notes_ref=RELEASE_NOTE_NOTES_REF)
+
+
+def release_note_exists(sha: str) -> bool:
+    """Check if a release note exists for a commit.
+
+    Args:
+        sha: The commit SHA to check.
+
+    Returns:
+        True if a release note exists.
+    """
+    return notes_exists(sha, notes_ref=RELEASE_NOTE_NOTES_REF)
 

@@ -27,10 +27,14 @@ from .git import (
 )
 from .notes import (
     NOTES_REF,
+    RELEASE_NOTE_NOTES_REF,
+    load_release_note,
     notes_exists,
     notes_read,
     notes_remove,
     notes_write,
+    release_note_exists,
+    save_release_note,
 )
 from .storage import (
     SCHEMA_VERSION,
@@ -60,10 +64,15 @@ __all__ = [
     "tracked_files",
     # Notes operations
     "NOTES_REF",
+    "RELEASE_NOTE_NOTES_REF",
     "notes_exists",
     "notes_read",
     "notes_write",
     "notes_remove",
+    # Release note storage
+    "save_release_note",
+    "load_release_note",
+    "release_note_exists",
     # Storage operations
     "SCHEMA_VERSION",
     "artifact_to_yaml",

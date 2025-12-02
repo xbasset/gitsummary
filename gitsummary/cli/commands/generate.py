@@ -2,13 +2,14 @@
 
 Produces various reports from stored artifacts:
 - changelog: Grouped by category
-- release-notes: User-facing changes
+- release-notes: User-facing changes (with optional LLM synthesis)
 - impact: Technical impact analysis
 """
 
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Optional
 
 import typer
@@ -18,7 +19,16 @@ from ...infrastructure import (
     GitCommandError,
     list_commits_in_range,
     load_artifacts_for_range,
+    repository_root,
+    save_release_note,
 )
+from ...renderers import (
+    format_changelog_markdown,
+    format_impact_markdown,
+    format_release_note_markdown,
+    format_release_note_text,
+)
+from ...reports import ReleaseNote
 from ...services import ReporterService
 
 
@@ -91,7 +101,7 @@ def generate_changelog(
         }
         output = json.dumps(result, indent=2)
     else:
-        output = _format_changelog_markdown(revision_range, report)
+        output = format_changelog_markdown(revision_range, report)
 
     _write_output(output, output_file)
 
@@ -101,11 +111,54 @@ def generate_release_notes(
         ...,
         help="Revision range to generate release notes for.",
     ),
+    output_format: str = typer.Option(
+        "markdown",
+        "--format",
+        "-f",
+        help="Output format: markdown, yaml, text.",
+    ),
     output_file: Optional[str] = typer.Option(
         None, "--output", "-o", help="Write to file instead of stdout."
     ),
+    use_llm: bool = typer.Option(
+        True,
+        "--llm/--no-llm",
+        help="Use LLM for synthesis (default: enabled).",
+    ),
+    provider_name: Optional[str] = typer.Option(
+        None,
+        "--provider",
+        "-p",
+        help="LLM provider to use (e.g., openai, anthropic, ollama).",
+    ),
+    model: Optional[str] = typer.Option(
+        None,
+        "--model",
+        "-m",
+        help="Model to use for LLM synthesis.",
+    ),
+    product_name: Optional[str] = typer.Option(
+        None,
+        "--product",
+        help="Product name for the header (default: repo directory name).",
+    ),
+    version: Optional[str] = typer.Option(
+        None,
+        "--version",
+        "-v",
+        help="Version for the header (default: extracted from range end).",
+    ),
+    store: bool = typer.Option(
+        False,
+        "--store",
+        help="Store the release note in Git Notes.",
+    ),
 ) -> None:
-    """Generate user-facing release notes from analyzed artifacts."""
+    """Generate user-facing release notes from analyzed artifacts.
+
+    Uses LLM synthesis by default to create user-focused, well-organized
+    release notes. Use --no-llm for faster heuristic-based generation.
+    """
     try:
         commits = list_commits_in_range(revision_range)
     except GitCommandError as exc:
@@ -120,42 +173,97 @@ def generate_release_notes(
     shas = [c.sha for c in commits]
     artifacts = load_artifacts_for_range(shas)
 
-    # Generate report
+    analyzed_count = sum(1 for a in artifacts.values() if a is not None)
+    if analyzed_count == 0:
+        typer.secho(
+            "No analyzed commits found. Run 'gitsummary analyze' first.",
+            err=True,
+            fg=typer.colors.YELLOW,
+        )
+        raise typer.Exit(code=1)
+
+    # Determine product name
+    if product_name is None:
+        try:
+            repo_root = Path(repository_root())
+            product_name = repo_root.name
+        except GitCommandError:
+            product_name = "Project"
+
+    # Determine version
+    if version is None:
+        # Try to extract from revision range (e.g., "v0.1.0..v0.2.0" -> "v0.2.0")
+        if ".." in revision_range:
+            version = revision_range.split("..")[-1]
+        else:
+            version = revision_range
+
+    # Get LLM provider if requested
+    provider = None
+    if use_llm:
+        provider = _get_llm_provider(provider_name, model)
+        if provider is None:
+            typer.secho(
+                "LLM provider not available. Using heuristic generation.",
+                err=True,
+                fg=typer.colors.YELLOW,
+            )
+
+    # Generate the release note
     reporter = ReporterService()
-    report = reporter.generate_release_notes(commits, artifacts)
+    release_note = reporter.generate_llm_release_notes(
+        commits,
+        artifacts,
+        product_name=product_name,
+        version=version,
+        revision_range=revision_range,
+        provider=provider,
+    )
 
-    # Format output
-    lines = [f"# Release Notes: {revision_range}", ""]
+    # Store if requested
+    if store:
+        tip_sha = commits[0].sha
+        yaml_content = release_note.to_yaml()
+        save_release_note(tip_sha, yaml_content)
+        typer.secho(
+            f"Release note stored for commit {commits[0].short_sha}",
+            fg=typer.colors.GREEN,
+        )
 
-    if report.user_facing:
-        lines.append("## What's New")
-        lines.append("")
+    # Format and output
+    if output_format == "yaml":
+        output = release_note.to_yaml()
+    elif output_format == "text":
+        output = format_release_note_text(release_note)
+    else:  # markdown
+        output = format_release_note_markdown(release_note)
 
-        for commit, artifact in report.user_facing:
-            category_emoji = {
-                ChangeCategory.FEATURE: "✨",
-                ChangeCategory.FIX: "🐛",
-                ChangeCategory.SECURITY: "🔒",
-                ChangeCategory.PERFORMANCE: "⚡",
-            }.get(artifact.category, "📝")
-
-            lines.append(f"### {category_emoji} {artifact.intent_summary}")
-            if artifact.behavior_after:
-                lines.append("")
-                lines.append(artifact.behavior_after)
-            if artifact.is_breaking:
-                lines.append("")
-                lines.append(
-                    f"⚠️ **Breaking Change**: {artifact.behavior_before or 'See migration guide.'}"
-                )
-            lines.append("")
-
-    # Summary stats
-    lines.append("---")
-    lines.append(f"*{report.total_commits} commits, {report.analyzed_count} analyzed*")
-
-    output = "\n".join(lines)
     _write_output(output, output_file)
+
+
+def _get_llm_provider(provider_name: Optional[str], model: Optional[str]):
+    """Get an LLM provider for synthesis."""
+    try:
+        from ...llm import get_provider, list_available_providers
+        from ...llm.base import ProviderConfig
+
+        # If no provider specified, try to get a default
+        if provider_name is None:
+            available = list_available_providers()
+            if not available:
+                return None
+            provider_name = available[0]
+
+        # Build config
+        config = ProviderConfig()
+        if model:
+            config.model = model
+
+        return get_provider(provider_name, config)
+    except Exception:
+        return None
+
+
 
 
 def generate_impact(
@@ -200,29 +308,7 @@ def generate_impact(
         }
         output = json.dumps(result, indent=2)
     else:
-        lines = [
-            f"# Impact Analysis: {revision_range}",
-            "",
-            "## Summary",
-            f"- **Total commits:** {report.total_commits}",
-            f"- **Analyzed:** {report.analyzed_count}",
-            f"- **Breaking changes:** {report.breaking_count}",
-            "",
-            "## Impact Distribution",
-        ]
-
-        for scope, count in sorted(
-            report.scope_distribution.items(), key=lambda x: -x[1]
-        ):
-            lines.append(f"- {scope}: {count}")
-
-        if report.technical_highlights:
-            lines.append("")
-            lines.append("## Technical Highlights")
-            for hl in report.technical_highlights[:10]:
-                lines.append(f"- {hl}")
-
-        output = "\n".join(lines)
+        output = format_impact_markdown(revision_range, report)
 
     _write_output(output, output_file)
 
@@ -230,64 +316,6 @@ def generate_impact(
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
-
-
-def _format_changelog_markdown(revision_range: str, report) -> str:
-    """Format a changelog report as Markdown."""
-    lines = [f"# Changelog {revision_range}", ""]
-
-    # Features
-    if report.features:
-        lines.append("## Features")
-        for commit, artifact in report.features:
-            breaking = " **[BREAKING]**" if artifact.is_breaking else ""
-            lines.append(
-                f"- **{artifact.intent_summary}** ({commit.short_sha}){breaking}"
-            )
-            if artifact.behavior_after:
-                lines.append(f"  {artifact.behavior_after}")
-        lines.append("")
-
-    # Fixes
-    if report.fixes:
-        lines.append("## Fixes")
-        for commit, artifact in report.fixes:
-            lines.append(f"- **{artifact.intent_summary}** ({commit.short_sha})")
-        lines.append("")
-
-    # Security
-    if report.security:
-        lines.append("## Security")
-        for commit, artifact in report.security:
-            lines.append(f"- **{artifact.intent_summary}** ({commit.short_sha})")
-        lines.append("")
-
-    # Breaking Changes
-    if report.breaking_changes:
-        lines.append("## Breaking Changes")
-        for commit, artifact in report.breaking_changes:
-            lines.append(f"- **{artifact.intent_summary}** ({commit.short_sha})")
-            if artifact.behavior_before and artifact.behavior_after:
-                lines.append(f"  - Before: {artifact.behavior_before}")
-                lines.append(f"  - After: {artifact.behavior_after}")
-        lines.append("")
-
-    # Other
-    other = report.refactors + report.performance + report.chores
-    if other:
-        lines.append("## Other")
-        for commit, artifact in other:
-            lines.append(f"- {artifact.intent_summary} ({commit.short_sha})")
-        lines.append("")
-
-    # Unanalyzed
-    if report.unanalyzed:
-        lines.append("## Unanalyzed")
-        for commit in report.unanalyzed:
-            lines.append(f"- {commit.summary} ({commit.short_sha})")
-        lines.append("")
-
-    return "\n".join(lines)
 
 
 def _write_output(output: str, output_file: Optional[str]) -> None:
@@ -298,4 +326,3 @@ def _write_output(output: str, output_file: Optional[str]) -> None:
         typer.echo(f"Report written to {output_file}")
     else:
         typer.echo(output)
-

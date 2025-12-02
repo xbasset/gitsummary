@@ -13,7 +13,10 @@ from ...infrastructure import (
     GitCommandError,
     list_commits_in_range,
     load_artifact_from_notes,
+    load_release_note,
+    resolve_revision,
 )
+from ...reports import ReleaseNote
 from ..formatters import (
     format_artifact_brief,
     format_artifact_human,
@@ -85,3 +88,57 @@ def show(
     if missing > 0 and found == 0:
         raise typer.Exit(code=1)
 
+
+def show_release_note(
+    revision: str = typer.Argument(
+        ...,
+        help="Commit SHA, tag, or revision to show release note for.",
+    ),
+    output_format: str = typer.Option(
+        "markdown",
+        "--format",
+        "-f",
+        help="Output format: markdown, yaml, text.",
+    ),
+) -> None:
+    """Display a stored release note.
+
+    Release notes are stored in Git Notes attached to the tip commit
+    of a release range. Use the commit SHA, tag, or revision to retrieve.
+    """
+    try:
+        sha = resolve_revision(revision)
+    except GitCommandError as exc:
+        typer.secho(f"Error: {exc}", err=True, fg=typer.colors.RED)
+        raise typer.Exit(code=2) from exc
+
+    yaml_content = load_release_note(sha)
+
+    if yaml_content is None:
+        typer.secho(
+            f"No release note found for revision: {revision}",
+            err=True,
+            fg=typer.colors.YELLOW,
+        )
+        raise typer.Exit(code=1)
+
+    try:
+        release_note = ReleaseNote.from_yaml(yaml_content)
+    except Exception as exc:
+        typer.secho(
+            f"Failed to parse release note: {exc}",
+            err=True,
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(code=2) from exc
+
+    if output_format == "yaml":
+        typer.echo(release_note.to_yaml())
+    elif output_format == "text":
+        from ...renderers import format_release_note_text
+
+        typer.echo(format_release_note_text(release_note))
+    else:  # markdown
+        from ...renderers import format_release_note_markdown
+
+        typer.echo(format_release_note_markdown(release_note))
