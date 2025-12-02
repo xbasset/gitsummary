@@ -1,5 +1,13 @@
 # Current Development Status
 
+## Latest Release
+- **v0.0.1:** Tagged at current HEAD with release notes generated via `gitsummary generate release-notes` (heuristic mode, stored in Git Notes).
+
+## Operational Notes
+- For long ranges, run `gitsummary list <range> --missing` first, then `gitsummary analyze <range> --provider openai` without `--force` to skip already analyzed commits and avoid long reruns.
+- If the LLM request times out, switch to a lighter model (e.g., `--model gpt-4.1-mini`) when generating release notes: `gitsummary generate release-notes <range> --provider openai --model gpt-4.1-mini --store`.
+- Git Notes writes may require elevated permissions on some systems; rerun commands with appropriate privileges if you see `Operation not permitted` errors when creating notes or tags.
+
 ## Step 1: Ground the Problem & Constraints (Complete)
 - **Status:** Done.
 - **Outcome:**
