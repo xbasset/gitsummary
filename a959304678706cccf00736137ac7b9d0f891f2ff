@@ -1,0 +1,224 @@
+schema_version: 1.0.0
+artifact_type: release-note
+metadata:
+  generated_at: '2025-12-02T13:48:13.449238'
+  generator_version: 0.2.0
+  llm_provider: openai
+  llm_model: gpt-4.1-mini
+  revision_range: HEAD~28..HEAD
+  tip_commit: a959304678706cccf00736137ac7b9d0f891f2ff
+  commit_count: 51
+  analyzed_count: 51
+  source_commits:
+  - sha: a959304
+    category: feature
+  - sha: 24c5da5
+    category: feature
+  - sha: 1083ed0
+    category: chore
+  - sha: 856eb2a
+    category: refactor
+  - sha: d6efc05
+    category: chore
+  - sha: '6737158'
+    category: feature
+  - sha: 4f13307
+    category: chore
+  - sha: f875dbf
+    category: chore
+  - sha: 1771f75
+    category: chore
+  - sha: e9ffd5b
+    category: chore
+  - sha: 94fcfed
+    category: feature
+  - sha: cd724cb
+    category: chore
+  - sha: 33d5ad0
+    category: chore
+  - sha: 0b24508
+    category: feature
+  - sha: 5e436ec
+    category: fix
+  - sha: 57946e6
+    category: feature
+  - sha: 3e85ab1
+    category: feature
+  - sha: 1b97434
+    category: feature
+  - sha: f457ef4
+    category: feature
+  - sha: 084f834
+    category: feature
+  - sha: 657059d
+    category: refactor
+  - sha: b8383cf
+    category: feature
+  - sha: 92feed1
+    category: refactor
+  - sha: f9f0d5c
+    category: chore
+  - sha: 05ba011
+    category: feature
+  - sha: baabcc3
+    category: chore
+  - sha: c3b93a7
+    category: chore
+  - sha: a7e5a47
+    category: feature
+  - sha: 469a2a5
+    category: chore
+  - sha: d656641
+    category: chore
+  - sha: 806ed3c
+    category: feature
+  - sha: 706bcf7
+    category: chore
+  - sha: bf31b2e
+    category: feature
+  - sha: 131c590
+    category: feature
+  - sha: c28a5b3
+    category: chore
+  - sha: f3c8748
+    category: chore
+  - sha: a91ab97
+    category: chore
+  - sha: 9cdfac1
+    category: chore
+  - sha: 1fef59a
+    category: refactor
+  - sha: a864ebe
+    category: feature
+  - sha: b65388e
+    category: chore
+  - sha: c2a17a1
+    category: chore
+  - sha: 41a14e9
+    category: chore
+  - sha: '4481238'
+    category: chore
+  - sha: ee81275
+    category: feature
+  - sha: eeeea37
+    category: chore
+  - sha: 5c4b742
+    category: feature
+  - sha: 2e815b4
+    category: feature
+  - sha: f9d1a9c
+    category: chore
+  - sha: 9d0f0fa
+    category: chore
+  - sha: 1a3d490
+    category: chore
+header:
+  product_name: gitsummary
+  version: 0.0.1
+  release_date: '2025-12-02'
+  theme: Introducing AI-powered, structured release notes with enhanced CLI and Git
+    integration for seamless software version insights.
+highlights:
+- emoji: 🚀
+  type: new
+  summary: AI-assisted release notes generation with LLMs
+- emoji: 🚀
+  type: new
+  summary: Store and retrieve release notes via Git Notes
+- emoji: ✨
+  type: improved
+  summary: Flexible CLI with rich options for release notes
+- emoji: ⚠️
+  type: breaking
+  summary: CLI restructuring and removal of deprecated commands
+- emoji: ✨
+  type: improved
+  summary: Pluggable LLM providers for customizable analysis
+features:
+- title: AI-Assisted Release Notes Generation
+  description: Generate detailed, user-friendly release notes using large language
+    models (LLMs) with configurable providers and models.
+  user_benefit: Easily create insightful, well-structured release notes that highlight
+    key changes without manual effort.
+  commits:
+  - 24c5da5
+  - '6737158'
+- title: Git Notes Integration for Release Notes Storage
+  description: Persist generated release notes directly into Git Notes attached to
+    commits, and retrieve them anytime via the CLI.
+  user_benefit: Keep release notes versioned and accessible alongside your code history
+    for better traceability and collaboration.
+  commits:
+  - '6737158'
+  - 05ba011
+- title: Enhanced Command-Line Interface
+  description: A reorganized CLI with new subcommands and options to generate, format
+    (markdown/yaml/text), and display release notes and commit artifacts.
+  user_benefit: More control and flexibility in how you generate and view release
+    notes, tailored to your workflow and preferences.
+  commits:
+  - 24c5da5
+  - '6737158'
+  - 5c4b742
+- title: Pluggable LLM Provider Architecture
+  description: Support for multiple LLM backends with easy selection of providers
+    and models, including OpenAI integration with structured output.
+  user_benefit: Customize your analysis and release note generation with the best
+    AI models for your needs, improving accuracy and relevance.
+  commits:
+  - 94fcfed
+  - 0b24508
+improvements:
+- summary: Refined LLM provider initialization to securely and correctly handle API
+    keys and model overrides, ensuring reliable AI integration.
+  commits:
+  - a959304
+- summary: Improved date formatting in commit listings with absolute and relative
+    options for clearer timelines.
+  commits:
+  - 57946e6
+  - 5e436ec
+- summary: Centralized release note rendering logic for consistent formatting across
+    markdown and text outputs.
+  commits:
+  - 856eb2a
+- summary: Comprehensive documentation updates including getting started guides, CLI
+    usage clarifications, and project goals for better user onboarding.
+  commits:
+  - 1b97434
+  - 41a14e9
+  - 9cdfac1
+  - '4481238'
+- summary: Introduced automated testing infrastructure covering core models and CLI
+    formatting to ensure reliability and maintainability.
+  commits:
+  - d6efc05
+  - f875dbf
+  - e9ffd5b
+fixes:
+- summary: Fixed date formatting functions to correctly display absolute and relative
+    dates in commit listings.
+  commits:
+  - 5e436ec
+deprecations:
+- what: Removal of the deprecated 'report' CLI subcommand and its aliases.
+  reason: To simplify the CLI and focus on the improved 'generate' and 'show' commands
+    for report generation and display.
+  deadline: null
+  migration: Use 'generate' commands for changelog, release-notes, and impact reports
+    instead of 'report'. Update scripts and workflows accordingly.
+  commits:
+  - 1083ed0
+- what: CLI restructuring introducing 'show' as a subcommand group and enhanced 'generate
+    release-notes' options.
+  reason: To provide a clearer, more extensible command structure and richer functionality
+    for release notes management.
+  deadline: null
+  migration: 'Adapt to the new CLI syntax: use ''gitsummary show release-note <rev>''
+    to display stored notes and new flags like ''--llm'', ''--provider'', ''--model'',
+    ''--format'', and ''--store'' with ''generate release-notes''.'
+  commits:
+  - '6737158'
+  - 5c4b742
+known_issues: []
+call_to_action: null
