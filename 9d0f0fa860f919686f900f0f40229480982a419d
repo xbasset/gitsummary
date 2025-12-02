@@ -1,0 +1,32 @@
+commit_hash: 9d0f0fa860f919686f900f0f40229480982a419d
+schema_version: 0.1.0
+intent_summary: Update the project specification to commit to using the Typer framework
+  for the CLI and append a detailed decisions log describing the gitsummary POC design
+  and behavior.
+category: chore
+behavior_before: null
+behavior_after: null
+impact_scope: docs
+is_breaking: false
+technical_highlights:
+- Explicitly selects Typer as the Python CLI framework in the spec, replacing the
+  previously unspecified CLI framework note.
+- Adds a comprehensive decisions log section to the spec that defines POC CLI commands
+  (`collect`, `analyze`), their arguments, and output semantics.
+- Documents the artifact data model, including fields like context, intention, implementation,
+  impact, maintainability, deployment, meta, and alias.
+- Specifies a filesystem-based storage layout under `.gitsummary/` with artifacts,
+  manifests by range, an index, schema versioning, and reserved notes.
+- Defines artifact identity as a SHA-256 hash of the artifact JSON content, with Git-like
+  prefix matching semantics.
+- Clarifies ignore behavior using `.gitignore` plus an optional `.gitsummaryignore`
+  with default noise patterns.
+- Describes analyzer architecture (built-in analyzers, one facet per run, stdout output)
+  and future plugin readiness.
+- Establishes versioning rules (schema SemVer starting at 0.1.0) and metadata expectations
+  (tool version, timestamps, confidence scores).
+- Captures UX expectations such as Typer-based CLI, stdout-focused analysis, behavior
+  when no commits are in range, and error style.
+- Outlines future Git-native directions (refs, notes, push behavior) as non-POC, forward-looking
+  design constraints.
+tool_version: 0.1.0
