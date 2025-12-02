@@ -1,15 +1,33 @@
 commit_hash: 856eb2aa5c6e42cf2201ddbab88753ec02fc70c7
 schema_version: 0.1.0
-intent_summary: Refactor release notes functionality and enhance LLM integration
+intent_summary: Refactors release note modeling and rendering into dedicated report
+  and renderer modules, introduces a new `report` CLI namespace that aliases existing
+  generate commands, and splits LLM prompt helpers while keeping backward-compatible
+  wrappers.
 category: refactor
 behavior_before: null
 behavior_after: null
 impact_scope: public_api
 is_breaking: false
 technical_highlights:
-- Added def `build_commit_analysis_prompt`
-- Added def `build_batch_analysis_prompt`
-- Added def `build_release_note_synthesis_prompt`
-- Removed def `_format_release_note_markdown`
-- Removed def `_format_release_note_text`
+- Moves the `ReleaseNote` schema out of `gitsummary.core` into a new `reports` package
+  (`...reports import ReleaseNote`), decoupling release-note reporting from core commit
+  models.
+- Extracts markdown/text formatting logic for changelog, impact, and release notes
+  from `cli.commands.generate` into a centralized `renderers` module, and updates
+  call sites in both `generate` and `show` commands to use these helpers.
+- Adds a new Typer sub-application `report` in `cli.app` and wires its `changelog`,
+  `release-notes`, and `impact` commands as aliases to the existing `generate` commands,
+  providing a unified, preferred entrypoint without removing the old one.
+- Removes `ReleaseNote` and related types from `gitsummary.core.__init__.__all__`,
+  signaling that release-note models are no longer part of the core public surface
+  and should be accessed via the reports layer instead.
+- Updates documentation to point to the new `reports/release_notes/model.py` location
+  for `ReleaseNote` and to the split LLM prompt/schema modules (`prompts_release_note.py`,
+  `schemas_release_note.py`).
+- Replaces inline markdown construction for impact and changelog reports with calls
+  to `format_impact_markdown` and `format_changelog_markdown`, improving reuse and
+  separation of concerns.
+- Keeps `gitsummary.llm.prompts` as a thin compatibility wrapper that re-exports prompt
+  builders from more focused modules, easing migration for existing integrations.
 tool_version: 0.1.0
