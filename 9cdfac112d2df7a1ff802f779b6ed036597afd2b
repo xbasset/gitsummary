@@ -1,0 +1,22 @@
+commit_hash: 9cdfac112d2df7a1ff802f779b6ed036597afd2b
+schema_version: 0.1.0
+intent_summary: Corrects the documented CLI syntax for specifying multiple tags and
+  adds a new documentation page describing the project’s goals, artifact model, and
+  CLI design.
+category: chore
+behavior_before: null
+behavior_after: null
+impact_scope: docs
+is_breaking: false
+technical_highlights:
+- Updates AGENTS.md to show repeated use of the --tag option (`--tag v0.1.0 --tag
+  v0.2.0`) instead of a single option followed by two values, aligning docs with the
+  actual CLI interface.
+- Introduces docs/project_summary.md as a high-level design document outlining the
+  concept of semantic artifacts, their facets (context, intention, implementation,
+  impact, maintainability, deployment, meta), and how they are stored using Git Notes.
+- Documents intended CLI workflows for `gitsummary collect` and `gitsummary analyze`,
+  including interactive analysis and facet-targeted analysis.
+- Clarifies long-term strategy and philosophy for the project, serving as architectural
+  and product direction rather than executable behavior.
+tool_version: 0.1.0
