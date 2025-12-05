@@ -12,7 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Sequence
 
-from ..core import CommitDiff, CommitInfo, DiffStat, FileChange, FileDiff
+from ..core import CommitDiff, CommitInfo, DiffStat, FileChange, FileDiff, TagInfo
 
 
 class GitCommandError(RuntimeError):
@@ -60,6 +60,18 @@ def repository_root() -> Path:
     return Path(run(["rev-parse", "--show-toplevel"]).strip())
 
 
+def is_worktree_clean() -> bool:
+    """Return True if the working tree has no staged or unstaged changes."""
+    status = run(["status", "--porcelain"])
+    return status.strip() == ""
+
+
+def ensure_clean_worktree() -> None:
+    """Raise GitCommandError if the worktree has uncommitted changes."""
+    if not is_worktree_clean():
+        raise GitCommandError("Working tree is dirty. Commit or stash changes first.")
+
+
 def resolve_revision(revision: str) -> str:
     """Resolve a revision (tag, branch, HEAD, SHA) to a full commit SHA."""
     return run(["rev-parse", "--verify", revision]).strip()
@@ -85,6 +97,67 @@ def check_revisions(revisions: Sequence[str]) -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Tag Information
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def fetch_tags(*, prune: bool = False) -> None:
+    """Fetch remote tags.
+
+    Args:
+        prune: Whether to prune deleted tags.
+    """
+    args = ["fetch", "--tags"]
+    if prune:
+        args.append("--prune")
+    run(args)
+
+
+def list_tags_by_date() -> List[TagInfo]:
+    """Return all tags ordered by annotated/creation date (oldest→newest)."""
+    # Avoid git sort specifiers (taggerdate) for compatibility; sort in Python instead.
+    output = run(
+        [
+            "for-each-ref",
+            "--format=%(refname:strip=2)\t%(taggerdate:iso8601)\t%(creatordate:iso8601)\t%(objectname)",
+            "refs/tags",
+        ]
+    )
+    
+    tags: List[TagInfo] = []
+    for line in output.strip().splitlines():
+        if not line:
+            continue
+        parts = line.split("\t")
+        if len(parts) < 4:
+            continue
+        name, taggerdate, creatordate, _ = parts[:4]
+        date_str = taggerdate or creatordate
+        if not date_str:
+            continue
+        tags.append(
+            TagInfo(
+                name=name,
+                sha=resolve_revision(name),
+                date=_parse_git_date(date_str),
+                is_annotated=bool(taggerdate),
+            )
+        )
+
+    tags.sort(key=lambda t: t.date)
+    return tags
+
+
+def get_root_commit() -> str:
+    """Return the SHA of the repository's root commit."""
+    output = run(["rev-list", "--max-parents=0", "HEAD"])
+    roots = [line for line in output.strip().splitlines() if line]
+    if not roots:
+        raise GitCommandError("Unable to determine root commit")
+    return roots[0]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Commit Information Retrieval
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -98,7 +171,14 @@ def _parse_git_date(date_str: str) -> datetime:
     # Replace 'Z' suffix with '+00:00' for compatibility with Python < 3.11
     if date_str.endswith("Z"):
         date_str = date_str[:-1] + "+00:00"
-    return datetime.fromisoformat(date_str)
+    try:
+        return datetime.fromisoformat(date_str)
+    except ValueError:
+        # Fallback for git formats like "2025-12-02 14:32:07 +0100"
+        try:
+            return datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S %z")
+        except ValueError as exc:  # pragma: no cover - defensive
+            raise
 
 
 def get_commit_info(revision: str) -> CommitInfo:
@@ -167,6 +247,13 @@ def list_commits_in_range(range_spec: str) -> List[CommitInfo]:
     return [get_commit_info(sha) for sha in reversed(shas)]
 
 
+def list_commits_to_revision(revision: str) -> List[CommitInfo]:
+    """Return all commits reachable from a revision (newest → oldest)."""
+    output = run(["rev-list", revision])
+    shas = [sha for sha in output.strip().splitlines() if sha]
+    return [get_commit_info(sha) for sha in shas]
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Diff Extraction
 # ─────────────────────────────────────────────────────────────────────────────
@@ -186,7 +273,7 @@ def get_commit_diff(revision: str) -> CommitDiff:
     sha = resolve_revision(revision)
 
     # Get numstat for per-file statistics
-    numstat_output = run(["diff", "--numstat", f"{sha}^..{sha}"])
+    numstat_output = run(["diff", "--numstat", f"{sha}^!"])
     file_stats = {}
     for line in numstat_output.strip().splitlines():
         if not line:
@@ -200,7 +287,7 @@ def get_commit_diff(revision: str) -> CommitDiff:
             }
 
     # Get name-status for file change types
-    name_status_output = run(["diff", "--name-status", f"{sha}^..{sha}"])
+    name_status_output = run(["diff", "--name-status", f"{sha}^!"])
     file_changes = {}
     for line in name_status_output.strip().splitlines():
         if not line:
@@ -317,4 +404,3 @@ def tracked_files(range_spec: str) -> List[FileChange]:
             path = parts[1] if len(parts) > 1 else ""
             files.append(FileChange(status=status, path=path))
     return files
-

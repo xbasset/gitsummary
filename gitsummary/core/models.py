@@ -12,6 +12,16 @@ from typing import List, Optional
 
 
 @dataclass(frozen=True)
+class TagInfo:
+    """Information about a git tag ordered by creation/annotation date."""
+
+    name: str
+    sha: str
+    date: datetime
+    is_annotated: bool = False
+
+
+@dataclass(frozen=True)
 class CommitInfo:
     """Complete information about a single commit.
 
@@ -127,4 +137,3 @@ class CommitDiff:
     def file_paths(self) -> List[str]:
         """List of all affected file paths."""
         return [f.path for f in self.files]
-

@@ -60,10 +60,11 @@ def version() -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Import commands after app is created to avoid circular imports
-from .commands import analyze, generate, list_cmd, show  # noqa: E402, F401
+from .commands import analyze, generate, list_cmd, release_note, show  # noqa: E402, F401
 
 # Register commands
 app.command()(analyze.analyze)
+app.command("release-note")(release_note.release_note)
 app.command("list")(list_cmd.list_commits)
 
 # Register show subcommands
