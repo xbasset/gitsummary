@@ -28,6 +28,7 @@ from ...infrastructure import (
 from ...renderers import format_release_note_html, format_release_note_markdown
 from ...reports import ReleaseNote
 from ...services import AnalyzerService, ReporterService
+from ..ui import UXState, echo_status, spinner
 from ..commands.generate import _get_llm_provider
 
 
@@ -86,7 +87,8 @@ def release_note(
         raise typer.Exit(code=2)
 
     try:
-        repo_root = Path(repository_root())
+        with spinner("Detecting repository root"):
+            repo_root = Path(repository_root())
     except GitCommandError as exc:
         typer.secho(
             f"Error determining repository root: {exc}", err=True, fg=typer.colors.RED
@@ -95,13 +97,15 @@ def release_note(
 
     if not no_fetch:
         try:
-            fetch_tags()
+            with spinner("Fetching remote tags"):
+                fetch_tags()
         except GitCommandError as exc:
             typer.secho(f"Failed to fetch tags: {exc}", err=True, fg=typer.colors.RED)
             raise typer.Exit(code=2) from exc
 
     try:
-        tags = list_tags_by_date()
+        with spinner("Reading tags"):
+            tags = list_tags_by_date()
     except GitCommandError as exc:
         typer.secho(f"Error reading tags: {exc}", err=True, fg=typer.colors.RED)
         raise typer.Exit(code=2) from exc
@@ -118,7 +122,8 @@ def release_note(
     previous_tag = tags[-2] if len(tags) > 1 else None
 
     try:
-        commits, revision_range = _compute_commits(latest_tag, previous_tag)
+        with spinner("Computing commit range"):
+            commits, revision_range = _compute_commits(latest_tag, previous_tag)
     except GitCommandError as exc:
         typer.secho(f"Error loading commits: {exc}", err=True, fg=typer.colors.RED)
         raise typer.Exit(code=2) from exc
@@ -175,14 +180,16 @@ def release_note(
     analyzed_count = sum(1 for a in artifacts.values() if a is not None)
     missing_commits = [c for c in commits if artifacts.get(c.sha) is None]
 
-    typer.echo(f"Repository: {repo_root}")
-    typer.echo(f"Latest tag: {latest_tag.name} ({latest_tag.date.date()})")
-    typer.echo(
-        f"Previous tag: {previous_tag.name if previous_tag else 'none (using repo root)'}"
+    echo_status(f"Repository: {repo_root}", UXState.INFO)
+    echo_status(f"Latest tag: {latest_tag.name} ({latest_tag.date.date()})", UXState.INFO)
+    echo_status(
+        f"Previous tag: {previous_tag.name if previous_tag else 'none (using repo root)'}",
+        UXState.INFO,
     )
-    typer.echo(f"Range: {revision_range}")
-    typer.echo(
-        f"Commits: {len(commits)} • analyzed: {analyzed_count} • missing: {len(missing_commits)}"
+    echo_status(f"Range: {revision_range}", UXState.INFO)
+    echo_status(
+        f"Commits: {len(commits)} • analyzed: {analyzed_count} • missing: {len(missing_commits)}",
+        UXState.INFO,
     )
     _print_commit_status(commits, artifacts)
 
@@ -269,11 +276,11 @@ def _compute_commits(
 
 def _print_commit_status(commits, artifacts) -> None:
     typer.echo("")
-    typer.echo("Commit analysis status (latest → earliest):")
+    echo_status("Commit analysis status (latest → earliest):", UXState.INFO)
     preview = commits[:12]
     for commit in preview:
         analyzed = artifacts.get(commit.sha) is not None
-        marker = "✓" if analyzed else "•"
+        marker = "[OK]" if analyzed else "[..]"
         typer.echo(f"  {marker} {commit.short_sha} {commit.summary}")
     if len(commits) > len(preview):
         typer.echo(f"  … {len(commits) - len(preview)} more")

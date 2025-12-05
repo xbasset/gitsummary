@@ -15,6 +15,7 @@ from ...infrastructure import (
     list_commits_in_range,
     load_artifacts_for_range,
 )
+from ..ui import UXState, echo_status, spinner
 
 
 def _format_date_absolute(dt: datetime) -> str:
@@ -70,7 +71,8 @@ def list_commits(
 ) -> None:
     """List commits and their analysis status."""
     try:
-        commits = list_commits_in_range(revision_range)
+        with spinner(f"Resolving commits for {revision_range}", final_state=UXState.SUCCESS):
+            commits = list_commits_in_range(revision_range)
     except GitCommandError as exc:
         typer.secho(f"Error: {exc}", err=True, fg=typer.colors.RED)
         raise typer.Exit(code=2) from exc
@@ -81,7 +83,8 @@ def list_commits(
 
     # Check analysis status for all commits
     shas = [c.sha for c in commits]
-    artifacts = load_artifacts_for_range(shas)
+    with spinner("Loading artifacts", final_state=UXState.SUCCESS):
+        artifacts = load_artifacts_for_range(shas)
 
     analyzed_count = sum(1 for a in artifacts.values() if a is not None)
     missing_count = len(commits) - analyzed_count
@@ -98,14 +101,15 @@ def list_commits(
                 )
             )
         else:
-            typer.echo(f"Total: {len(commits)}")
-            typer.echo(f"Analyzed: {analyzed_count}")
-            typer.echo(f"Missing: {missing_count}")
+            echo_status(f"Total: {len(commits)}", UXState.INFO)
+            echo_status(f"Analyzed: {analyzed_count}", UXState.SUCCESS)
+            echo_status(f"Missing: {missing_count}", UXState.WARNING if missing_count else UXState.SUCCESS)
         return
 
     if not output_json:
-        typer.echo(
-            f"Commits in {revision_range} ({len(commits)} total, {analyzed_count} analyzed)"
+        echo_status(
+            f"Commits in {revision_range} ({len(commits)} total, {analyzed_count} analyzed)",
+            UXState.INFO,
         )
         typer.echo("")
 
@@ -144,4 +148,3 @@ def list_commits(
 
     if output_json:
         typer.echo(json.dumps(results, indent=2))
-

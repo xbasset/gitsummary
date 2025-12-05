@@ -33,6 +33,7 @@ from ...renderers import (
 )
 from ...reports import ReleaseNote
 from ...services import ReporterService
+from ..ui import UXState, echo_status, spinner
 
 
 def generate_changelog(
@@ -52,7 +53,8 @@ def generate_changelog(
 ) -> None:
     """Generate changelog from analyzed artifacts."""
     try:
-        commits = list_commits_in_range(revision_range)
+        with spinner(f"Resolving commits for {revision_range}", final_state=UXState.SUCCESS):
+            commits = list_commits_in_range(revision_range)
     except GitCommandError as exc:
         typer.secho(f"Error: {exc}", err=True, fg=typer.colors.RED)
         raise typer.Exit(code=2) from exc
@@ -63,13 +65,15 @@ def generate_changelog(
 
     # Load all artifacts
     shas = [c.sha for c in commits]
-    artifacts = load_artifacts_for_range(shas)
+    with spinner("Loading artifacts", final_state=UXState.SUCCESS):
+        artifacts = load_artifacts_for_range(shas)
 
     # Generate report
     reporter = ReporterService()
-    report = reporter.generate_changelog(
-        commits, artifacts, include_unanalyzed=include_unanalyzed
-    )
+    with spinner("Building changelog", final_state=UXState.SUCCESS):
+        report = reporter.generate_changelog(
+            commits, artifacts, include_unanalyzed=include_unanalyzed
+        )
 
     # Format output
     if output_format == "json":
@@ -133,7 +137,8 @@ def generate_feed(
 ) -> None:
     """Generate a scroll-friendly HTML feed of commits and artifacts."""
     try:
-        commits = list_commits_in_range(revision_range)
+        with spinner(f"Resolving commits for {revision_range}", final_state=UXState.SUCCESS):
+            commits = list_commits_in_range(revision_range)
     except GitCommandError as exc:
         typer.secho(f"Error: {exc}", err=True, fg=typer.colors.RED)
         raise typer.Exit(code=2) from exc
@@ -143,7 +148,8 @@ def generate_feed(
         raise typer.Exit(code=1)
 
     shas = [c.sha for c in commits]
-    artifacts = load_artifacts_for_range(shas)
+    with spinner("Loading artifacts", final_state=UXState.SUCCESS):
+        artifacts = load_artifacts_for_range(shas)
 
     try:
         project_name = Path(repository_root()).name
@@ -151,11 +157,12 @@ def generate_feed(
         project_name = "Project"
 
     reporter = ReporterService()
-    feed = reporter.generate_artifact_feed(
-        commits,
-        artifacts,
-        include_unanalyzed=not skip_unanalyzed,
-    )
+    with spinner("Building artifact feed", final_state=UXState.SUCCESS):
+        feed = reporter.generate_artifact_feed(
+            commits,
+            artifacts,
+            include_unanalyzed=not skip_unanalyzed,
+        )
 
     html_output = format_artifact_feed_html(project_name, revision_range, feed)
 
@@ -225,7 +232,8 @@ def generate_release_notes(
     release notes. Use --no-llm for faster heuristic-based generation.
     """
     try:
-        commits = list_commits_in_range(revision_range)
+        with spinner(f"Resolving commits for {revision_range}", final_state=UXState.SUCCESS):
+            commits = list_commits_in_range(revision_range)
     except GitCommandError as exc:
         typer.secho(f"Error: {exc}", err=True, fg=typer.colors.RED)
         raise typer.Exit(code=2) from exc
@@ -236,7 +244,8 @@ def generate_release_notes(
 
     # Load all artifacts
     shas = [c.sha for c in commits]
-    artifacts = load_artifacts_for_range(shas)
+    with spinner("Loading artifacts", final_state=UXState.SUCCESS):
+        artifacts = load_artifacts_for_range(shas)
 
     analyzed_count = sum(1 for a in artifacts.values() if a is not None)
     if analyzed_count == 0:
@@ -276,14 +285,15 @@ def generate_release_notes(
 
     # Generate the release note
     reporter = ReporterService()
-    release_note = reporter.generate_llm_release_notes(
-        commits,
-        artifacts,
-        product_name=product_name,
-        version=version,
-        revision_range=revision_range,
-        provider=provider,
-    )
+    with spinner("Synthesizing release notes", final_state=UXState.SUCCESS):
+        release_note = reporter.generate_llm_release_notes(
+            commits,
+            artifacts,
+            product_name=product_name,
+            version=version,
+            revision_range=revision_range,
+            provider=provider,
+        )
 
     # Store if requested
     if store:
@@ -355,7 +365,8 @@ def generate_impact(
 ) -> None:
     """Generate technical impact analysis for reviewers."""
     try:
-        commits = list_commits_in_range(revision_range)
+        with spinner(f"Resolving commits for {revision_range}", final_state=UXState.SUCCESS):
+            commits = list_commits_in_range(revision_range)
     except GitCommandError as exc:
         typer.secho(f"Error: {exc}", err=True, fg=typer.colors.RED)
         raise typer.Exit(code=2) from exc
@@ -366,11 +377,13 @@ def generate_impact(
 
     # Load all artifacts
     shas = [c.sha for c in commits]
-    artifacts = load_artifacts_for_range(shas)
+    with spinner("Loading artifacts", final_state=UXState.SUCCESS):
+        artifacts = load_artifacts_for_range(shas)
 
     # Generate report
     reporter = ReporterService()
-    report = reporter.generate_impact_report(commits, artifacts)
+    with spinner("Building impact report", final_state=UXState.SUCCESS):
+        report = reporter.generate_impact_report(commits, artifacts)
 
     if output_format == "json":
         result = {

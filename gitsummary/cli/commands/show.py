@@ -23,6 +23,7 @@ from ..formatters import (
     format_artifact_json,
     format_artifact_yaml,
 )
+from ..ui import UXState, echo_status, spinner
 
 
 def show(
@@ -39,7 +40,8 @@ def show(
 ) -> None:
     """Display artifacts for commits."""
     try:
-        commits = list_commits_in_range(revision_range)
+        with spinner(f"Resolving commits for {revision_range}", final_state=UXState.SUCCESS):
+            commits = list_commits_in_range(revision_range)
     except GitCommandError as exc:
         typer.secho(f"Error: {exc}", err=True, fg=typer.colors.RED)
         raise typer.Exit(code=2) from exc
@@ -107,7 +109,8 @@ def show_release_note(
     of a release range. Use the commit SHA, tag, or revision to retrieve.
     """
     try:
-        sha = resolve_revision(revision)
+        with spinner(f"Resolving revision {revision}", final_state=UXState.SUCCESS):
+            sha = resolve_revision(revision)
     except GitCommandError as exc:
         typer.secho(f"Error: {exc}", err=True, fg=typer.colors.RED)
         raise typer.Exit(code=2) from exc

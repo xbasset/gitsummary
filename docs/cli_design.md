@@ -246,7 +246,6 @@ gitsummary release-note latest [options]
 | `--model, -m <model>` | LLM model override |
 
 **Behavior:**
-- Requires a clean worktree; exits if uncommitted changes exist.
 - Fetches tags (unless `--no-fetch`), picks the latest by annotated date, and uses the previous tag as the start (or repo root if only one tag).
 - Shows analysis status for commits in range and prompts to analyze missing artifacts.
 - Stores the Markdown release note in Git Notes and writes an HTML copy to `<output-dir>/<tag>.html`, opening it unless `--no-open` is set.
@@ -257,6 +256,15 @@ gitsummary release-note latest [options]
 | `0` | Success |
 | `1` | No tags, no analyzed commits, or user aborted prompts |
 | `2` | Invalid input (bad git state, fetch failures, etc.) |
+
+---
+
+## CLI UX Principles (Global)
+- Use consistent state indicators for all commands: `[OK]` success, `[X]` error, `[!]` warning, `[i]` info, `[..]` running/starting.
+- Prefer lightweight spinners for network/file operations; fall back to simple status lines in non-TTY contexts.
+- Surface work-in-progress status early (range detection, tag resolution, fetches) and show final success/warning/error lines.
+- Keep prompts minimal; when `--yes`/non-interactive, still emit status lines to communicate progress.
+- Centralize UX helpers in `gitsummary/cli/ui/` to keep command modules focused on behavior.
 
 ---
 
