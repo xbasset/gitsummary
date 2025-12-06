@@ -11,8 +11,10 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, Sequence
+import time
 
 from ..core import CommitDiff, CommitInfo, DiffStat, FileChange, FileDiff, TagInfo
+from ..tracing import trace_manager
 
 
 class GitCommandError(RuntimeError):
@@ -37,6 +39,7 @@ def run(args: Sequence[str], *, cwd: Optional[Path] = None) -> str:
     Raises:
         GitCommandError: If the command exits with non-zero status.
     """
+    started = time.time()
     process = subprocess.run(
         ["git", *args],
         cwd=cwd,
@@ -45,7 +48,18 @@ def run(args: Sequence[str], *, cwd: Optional[Path] = None) -> str:
         stderr=subprocess.PIPE,
         text=True,
     )
-    if process.returncode != 0:
+    duration = time.time() - started
+    success = process.returncode == 0
+    trace_manager.log_git_command(
+        list(args),
+        cwd=cwd,
+        returncode=process.returncode,
+        stdout=process.stdout,
+        stderr=process.stderr,
+        duration_seconds=duration,
+        success=success,
+    )
+    if not success:
         raise GitCommandError(process.stderr.strip() or "git command failed")
     return process.stdout
 

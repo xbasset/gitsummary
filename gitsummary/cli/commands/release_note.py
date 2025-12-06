@@ -20,11 +20,13 @@ from ...infrastructure import (
     list_tags_by_date,
     load_artifacts_for_range,
     load_release_note,
+    RELEASE_NOTE_NOTES_REF,
     repository_root,
     release_note_exists,
     save_artifact_to_notes,
     save_release_note,
 )
+from ...tracing import trace_manager
 from ...renderers import format_release_note_html, format_release_note_markdown
 from ...reports import ReleaseNote
 from ...services import AnalyzerService, ReporterService
@@ -63,6 +65,11 @@ def release_note(
         True,
         "--llm/--no-llm",
         help="Use LLM for synthesis (default: enabled).",
+    ),
+    reanalyze: bool = typer.Option(
+        False,
+        "--reanalyze",
+        help="Re-analyze commits even if artifacts already exist.",
     ),
     provider: Optional[str] = typer.Option(
         None,
@@ -135,7 +142,7 @@ def release_note(
         raise typer.Exit(code=1)
 
     tip_sha = commits[0].sha
-    if release_note_exists(tip_sha):
+    if release_note_exists(tip_sha) and not reanalyze:
         typer.secho(
             f"Release note already exists for {latest_tag.name}; showing stored copy.",
             fg=typer.colors.GREEN,
@@ -177,8 +184,13 @@ def release_note(
 
     commit_shas = [c.sha for c in commits]
     artifacts = load_artifacts_for_range(commit_shas)
-    analyzed_count = sum(1 for a in artifacts.values() if a is not None)
-    missing_commits = [c for c in commits if artifacts.get(c.sha) is None]
+
+    if reanalyze:
+        analyzed_count = 0
+        missing_commits = commits
+    else:
+        analyzed_count = sum(1 for a in artifacts.values() if a is not None)
+        missing_commits = [c for c in commits if artifacts.get(c.sha) is None]
 
     echo_status(f"Repository: {repo_root}", UXState.INFO)
     echo_status(f"Latest tag: {latest_tag.name} ({latest_tag.date.date()})", UXState.INFO)
@@ -191,12 +203,22 @@ def release_note(
         f"Commits: {len(commits)} • analyzed: {analyzed_count} • missing: {len(missing_commits)}",
         UXState.INFO,
     )
-    _print_commit_status(commits, artifacts)
+    to_analyze = {c.sha for c in missing_commits}
+    _print_commit_status(commits, artifacts, to_analyze)
 
     if missing_commits:
-        if yes or typer.confirm(
-            f"Analyze {len(missing_commits)} missing commit(s)?", default=True
-        ):
+        prompt_text = (
+            f"Re-analyze {len(missing_commits)} commit(s)?"
+            if reanalyze
+            else f"Analyze {len(missing_commits)} missing commit(s)?"
+        )
+        decision = True if reanalyze else (yes or typer.confirm(prompt_text, default=True))
+        trace_manager.log_user_interaction(
+            action="confirm_analyze_missing_commits",
+            prompt=prompt_text,
+            response=decision,
+        )
+        if decision:
             _analyze_missing(missing_commits, artifacts, use_llm, provider)
         else:
             typer.secho("Aborted before analysis.", err=True, fg=typer.colors.YELLOW)
@@ -228,7 +250,15 @@ def release_note(
             f"Release note stored in Git Notes for {commits[0].short_sha}",
             fg=typer.colors.GREEN,
         )
+        trace_manager.log_output_reference(
+            kind="git_note_release_note",
+            location=f"{RELEASE_NOTE_NOTES_REF}:{commits[0].sha}",
+        )
     except GitCommandError as exc:
+        trace_manager.log_error(
+            message="Failed to store release note",
+            detail=str(exc),
+        )
         typer.secho(
             f"Warning: could not store release note in Git Notes ({exc}).",
             err=True,
@@ -274,13 +304,14 @@ def _compute_commits(
     return commits, revision_range
 
 
-def _print_commit_status(commits, artifacts) -> None:
+def _print_commit_status(commits, artifacts, to_analyze) -> None:
     typer.echo("")
     echo_status("Commit analysis status (latest → earliest):", UXState.INFO)
     preview = commits[:12]
     for commit in preview:
         analyzed = artifacts.get(commit.sha) is not None
-        marker = "[OK]" if analyzed else "[..]"
+        pending = commit.sha in to_analyze
+        marker = "[..]" if pending or not analyzed else "[OK]"
         typer.echo(f"  {marker} {commit.short_sha} {commit.summary}")
     if len(commits) > len(preview):
         typer.echo(f"  … {len(commits) - len(preview)} more")
@@ -328,7 +359,14 @@ def _write_html_release_note(
     html_content = format_release_note_html(release_note)
     directory = Path(output_dir) if output_dir else repo_root / "release-notes"
     if not directory.exists():
-        if yes or typer.confirm(f"Create output directory {directory}?", default=True):
+        prompt_text = f"Create output directory {directory}?"
+        decision = yes or typer.confirm(prompt_text, default=True)
+        trace_manager.log_user_interaction(
+            action="confirm_create_release_note_directory",
+            prompt=prompt_text,
+            response=decision,
+        )
+        if decision:
             directory.mkdir(parents=True, exist_ok=True)
         else:
             typer.secho(
@@ -340,4 +378,8 @@ def _write_html_release_note(
 
     html_path = directory / f"{release_note.header.version}.html"
     html_path.write_text(html_content, encoding="utf-8")
+    trace_manager.log_output_reference(
+        kind="release_note_html",
+        location=str(html_path),
+    )
     return html_path

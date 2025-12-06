@@ -78,6 +78,21 @@ pipx install gitsummary
 
 ---
 
+## Tracing
+
+All CLI operations emit a structured trace by default to `.gitsummary/*.log` in the repo root. Logged events include the invoked command, git subprocess calls, LLM requests and responses (with token usage), interactive prompts, and references to produced outputs (Git Notes writes, HTML files, etc.).
+
+Configuration lives in `.gitsummary/config.yaml`:
+
+```yaml
+tracing:
+  enabled: true
+```
+
+Set `GITSUMMARY_TRACING_ENABLED=0` (or edit the config) to disable tracing. When enabled, logs are JSON documents suitable for downstream analysis.
+
+---
+
 ## Commands
 
 ### `gitsummary analyze`

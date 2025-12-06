@@ -7,10 +7,14 @@ entry point.
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 import typer
 
 from .. import __version__
-from ..infrastructure import SCHEMA_VERSION
+from ..infrastructure import GitCommandError, SCHEMA_VERSION, repository_root
+from ..tracing import trace_manager
 
 # Create main app
 app = typer.Typer(
@@ -40,6 +44,28 @@ def main(
     ),
 ) -> None:
     """Summarize git changes into durable semantic artifacts."""
+    repo_root: Path | None = None
+    try:
+        repo_root = Path(repository_root())
+    except GitCommandError:
+        repo_root = None
+
+    trace_manager.start_session(
+        argv=sys.argv[1:],
+        cwd=Path.cwd(),
+        repo_root=repo_root,
+        tool_version=__version__,
+    )
+    if repo_root:
+        trace_manager.attach_repo_root(repo_root)
+
+    def _finalize() -> None:
+        exit_code = getattr(ctx, "exit_code", 0) or 0
+        status = "error" if exit_code else "completed"
+        trace_manager.finish_session(status=status, exit_code=exit_code)
+
+    ctx.call_on_close(_finalize)
+
     if version:
         typer.echo(f"gitsummary {__version__}")
         typer.echo(f"Schema version: {SCHEMA_VERSION}")
