@@ -15,6 +15,7 @@ import yaml
 from .. import __version__
 from ..core import CommitArtifact
 from .notes import NOTES_REF, notes_exists, notes_read, notes_write, notes_remove
+from ..tracing import trace_manager
 
 SCHEMA_VERSION = "0.1.0"
 
@@ -99,6 +100,11 @@ def save_artifact_to_notes(
 
     yaml_content = artifact_to_yaml(artifact)
     notes_write(sha, yaml_content, ref)
+    trace_manager.log_output_reference(
+        kind="git_note",
+        location=f"{ref}:{sha}",
+        metadata={"commit_summary": artifact.intent_summary},
+    )
     return sha
 
 
@@ -198,4 +204,3 @@ def load_artifacts_for_range(
     for sha in commit_shas:
         result[sha] = load_artifact_from_notes(sha, notes_ref=ref)
     return result
-

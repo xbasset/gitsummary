@@ -78,6 +78,21 @@ pipx install gitsummary
 
 ---
 
+## Tracing
+
+All CLI operations emit a structured trace by default to `.gitsummary/*.log` in the repo root. Logged events include the invoked command, git subprocess calls, LLM requests and responses (with token usage), interactive prompts, and references to produced outputs (Git Notes writes, HTML files, etc.).
+
+Configuration lives in `.gitsummary/config.yaml`:
+
+```yaml
+tracing:
+  enabled: true
+```
+
+Set `GITSUMMARY_TRACING_ENABLED=0` (or edit the config) to disable tracing. When enabled, logs are JSON documents suitable for downstream analysis.
+
+---
+
 ## Commands
 
 ### `gitsummary analyze`
@@ -223,6 +238,48 @@ None in this release.
 | `0` | Success |
 | `1` | Some commits missing artifacts (warning, partial output) |
 | `2` | Invalid input |
+
+---
+
+### `gitsummary release-note`
+**Purpose:** End-to-end helper that fetches tags, analyzes missing commits, and generates release notes for the latest tag.
+
+**Synopsis:**
+```bash
+gitsummary release-note latest [options]
+```
+
+**Options:**
+| Option | Description |
+|--------|-------------|
+| `--yes, -y` | Non-interactive: assume "yes" for all prompts |
+| `--no-fetch` | Skip `git fetch --tags` before running |
+| `--output-dir, -o <dir>` | Directory to write the HTML release note (default: `<repo>/release-notes/`) |
+| `--no-open` | Do not attempt to open the generated HTML locally |
+| `--llm/--no-llm` | Enable/disable LLM synthesis for the release note |
+| `--provider, -p <name>` | LLM provider for synthesis |
+| `--model, -m <model>` | LLM model override |
+
+**Behavior:**
+- Fetches tags (unless `--no-fetch`), picks the latest by annotated date, and uses the previous tag as the start (or repo root if only one tag).
+- Shows analysis status for commits in range and prompts to analyze missing artifacts.
+- Stores the Markdown release note in Git Notes and writes an HTML copy to `<output-dir>/<tag>.html`, opening it unless `--no-open` is set.
+
+**Exit Codes:**
+| Code | Meaning |
+|------|---------|
+| `0` | Success |
+| `1` | No tags, no analyzed commits, or user aborted prompts |
+| `2` | Invalid input (bad git state, fetch failures, etc.) |
+
+---
+
+## CLI UX Principles (Global)
+- Use consistent state indicators for all commands: `[OK]` success, `[X]` error, `[!]` warning, `[i]` info, `[..]` running/starting.
+- Prefer lightweight spinners for network/file operations; fall back to simple status lines in non-TTY contexts.
+- Surface work-in-progress status early (range detection, tag resolution, fetches) and show final success/warning/error lines.
+- Keep prompts minimal; when `--yes`/non-interactive, still emit status lines to communicate progress.
+- Centralize UX helpers in `gitsummary/cli/ui/` to keep command modules focused on behavior.
 
 ---
 

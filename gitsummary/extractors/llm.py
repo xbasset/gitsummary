@@ -13,9 +13,11 @@ The LLMExtractor integrates with the llm/ package which provides:
 from __future__ import annotations
 
 import logging
+import time
 from typing import Callable, Dict, Optional
 
 from ..core import ChangeCategory, CommitDiff, CommitInfo, ImpactScope
+from ..tracing import trace_manager
 from .base import ExtractionResult
 
 logger = logging.getLogger(__name__)
@@ -163,11 +165,54 @@ class LLMExtractor:
         prompt = build_commit_analysis_prompt(commit, diff_patch)
 
         # Call provider with structured output
-        response = provider.extract_structured(
-            prompt=prompt,
-            schema=CommitExtractionSchema,
-            system_prompt=COMMIT_ANALYSIS_SYSTEM_PROMPT,
-        )
+        response = None
+        started = time.time()
+        success = False
+        try:
+            response = provider.extract_structured(
+                prompt=prompt,
+                schema=CommitExtractionSchema,
+                system_prompt=COMMIT_ANALYSIS_SYSTEM_PROMPT,
+            )
+            success = response.success
+        finally:
+            duration = time.time() - started
+            parsed_payload = None
+            raw_text = None
+            refusal = None
+            model_name = None
+            token_usage = None
+            if response is not None:
+                parsed_payload = (
+                    response.parsed.model_dump()  # type: ignore[attr-defined]
+                    if hasattr(response.parsed, "model_dump")
+                    else response.parsed
+                )
+                raw_text = response.raw_text
+                refusal = response.refusal
+                model_name = response.model
+                token_usage = {
+                    "prompt_tokens": response.prompt_tokens,
+                    "completion_tokens": response.completion_tokens,
+                    "total_tokens": response.total_tokens,
+                }
+            trace_manager.log_llm_call(
+                provider=getattr(provider, "name", None),
+                model=model_name,
+                system_prompt=COMMIT_ANALYSIS_SYSTEM_PROMPT,
+                prompt=prompt,
+                input_context={
+                    "commit_sha": commit.sha,
+                    "commit_summary": commit.summary,
+                    "diff_present": bool(diff_patch),
+                },
+                response=parsed_payload,
+                raw_text=raw_text,
+                refusal=refusal,
+                token_usage=token_usage,
+                success=success,
+                duration_seconds=duration,
+            )
 
         if not response.success or response.parsed is None:
             if response.refusal:

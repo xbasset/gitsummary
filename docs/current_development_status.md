@@ -8,6 +8,7 @@
 - If the LLM request times out, switch to a lighter model (e.g., `--model gpt-4.1-mini`) when generating release notes: `gitsummary generate release-notes <range> --provider openai --model gpt-4.1-mini --store`.
 - Git Notes writes may require elevated permissions on some systems; rerun commands with appropriate privileges if you see `Operation not permitted` errors when creating notes or tags.
 - New: `gitsummary generate feed <range>` outputs a mobile-friendly HTML feed. Missing artifacts show playful CTAs with copyable `gitsummary analyze` commands.
+- New: `gitsummary release-note latest` fetches tags, checks analysis coverage, and writes Markdown to Git Notes plus an HTML copy under `release-notes/`.
 
 ## Step 1: Ground the Problem & Constraints (Complete)
 - **Status:** Done.

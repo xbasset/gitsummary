@@ -14,17 +14,23 @@ import pytest
 
 from gitsummary.infrastructure.git import (
     GitCommandError,
-    run,
-    repository_root,
-    resolve_revision,
-    is_valid_revision,
     check_revisions,
-    get_commit_info,
-    list_commits_in_range,
-    get_commit_diff,
-    diff_stat,
     diff_patch,
     diff_patch_for_commit,
+    diff_stat,
+    ensure_clean_worktree,
+    fetch_tags,
+    get_commit_diff,
+    get_commit_info,
+    get_root_commit,
+    is_valid_revision,
+    is_worktree_clean,
+    list_commits_in_range,
+    list_commits_to_revision,
+    list_tags_by_date,
+    repository_root,
+    resolve_revision,
+    run,
     tracked_files,
     _parse_git_date,
 )
@@ -91,6 +97,29 @@ class TestRepositoryRoot:
             mock_run.assert_called_once_with(["rev-parse", "--show-toplevel"])
 
 
+class TestWorktreeState:
+    """Tests for worktree cleanliness helpers."""
+
+    def test_is_worktree_clean_true(self) -> None:
+        """Returns True when status is empty."""
+        with patch("gitsummary.infrastructure.git.run") as mock_run:
+            mock_run.return_value = ""
+            assert is_worktree_clean() is True
+            mock_run.assert_called_once_with(["status", "--porcelain"])
+
+    def test_is_worktree_clean_false(self) -> None:
+        """Returns False when changes are present."""
+        with patch("gitsummary.infrastructure.git.run") as mock_run:
+            mock_run.return_value = " M file.txt\n"
+            assert is_worktree_clean() is False
+
+    def test_ensure_clean_worktree_raises(self) -> None:
+        """Raises GitCommandError when dirty."""
+        with patch("gitsummary.infrastructure.git.run") as mock_run:
+            mock_run.return_value = " M file.txt\n"
+            with pytest.raises(GitCommandError):
+                ensure_clean_worktree()
+
 class TestResolveRevision:
     """Tests for resolve_revision function."""
 
@@ -143,6 +172,43 @@ class TestCheckRevisions:
                 check_revisions(["bad-ref"])
 
 
+class TestTags:
+    """Tests for tag-related helpers."""
+
+    def test_fetch_tags_prune(self) -> None:
+        """Fetch tags with prune flag forwards args."""
+        with patch("gitsummary.infrastructure.git.run") as mock_run:
+            mock_run.return_value = ""
+            fetch_tags(prune=True)
+            mock_run.assert_called_once_with(["fetch", "--tags", "--prune"])
+
+    def test_list_tags_by_date_parses_taggerdate(self) -> None:
+        """Parse annotated and lightweight tags ordered by date."""
+        tag_output = (
+            "v0.1.0\t2024-01-01T10:00:00Z\t2024-01-01T10:00:00Z\tabc\n"
+            "v0.2.0\t\t2024-02-01T10:00:00Z\tdef\n"
+        )
+        with patch("gitsummary.infrastructure.git.run") as mock_run:
+            mock_run.side_effect = [
+                tag_output,
+                "abc123\n",  # resolve v0.1.0
+                "def456\n",  # resolve v0.2.0
+            ]
+            tags = list_tags_by_date()
+
+        assert len(tags) == 2
+        assert tags[0].name == "v0.1.0"
+        assert tags[0].is_annotated is True
+        assert tags[1].name == "v0.2.0"
+        assert tags[1].is_annotated is False
+        assert tags[1].sha == "def456"
+
+    def test_get_root_commit(self) -> None:
+        """Return first root commit sha."""
+        with patch("gitsummary.infrastructure.git.run") as mock_run:
+            mock_run.return_value = "rootsha\n"
+            assert get_root_commit() == "rootsha"
+
 class TestParseGitDate:
     """Tests for _parse_git_date function."""
 
@@ -158,6 +224,12 @@ class TestParseGitDate:
         result = _parse_git_date("2024-01-15T10:30:00Z")
         assert result.year == 2024
         assert result.tzinfo is not None
+
+    def test_parse_space_offset(self) -> None:
+        """Test parsing git date with space and numeric offset."""
+        result = _parse_git_date("2025-12-02 14:32:07 +0100")
+        assert result.year == 2025
+        assert result.utcoffset().total_seconds() == 3600
 
 
 class TestGetCommitInfo:
@@ -247,6 +319,23 @@ class TestListCommitsInRange:
 
             assert len(result) == 1
             assert result[0].sha == "abc123fullsha"
+
+
+class TestListCommitsToRevision:
+    """Tests for list_commits_to_revision function."""
+
+    def test_lists_all_commits(self) -> None:
+        """Return commits reachable from revision."""
+        with patch("gitsummary.infrastructure.git.run") as mock_run:
+            mock_run.side_effect = [
+                "sha3\nsha2\nsha1\n",  # rev-list
+                "sha3\x00sha3\x00A\x00a@b.com\x002024-01-15T10:30:00Z\x00Msg3\x00\x00sha2\n",
+                "sha2\x00sha2\x00A\x00a@b.com\x002024-01-14T10:30:00Z\x00Msg2\x00\x00sha1\n",
+                "sha1\x00sha1\x00A\x00a@b.com\x002024-01-13T10:30:00Z\x00Msg1\x00\x00\n",
+            ]
+            result = list_commits_to_revision("v1.0.0")
+
+        assert [c.sha for c in result] == ["sha3", "sha2", "sha1"]
 
 
 class TestGetCommitDiff:
@@ -407,6 +496,3 @@ class TestTrackedFiles:
             result = tracked_files("same..same")
 
             assert result == []
-
-
-

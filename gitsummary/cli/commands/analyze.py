@@ -22,6 +22,7 @@ from ...infrastructure import (
 )
 from ...services import AnalyzerService
 from ..formatters import format_artifact_json, format_artifact_yaml
+from ..ui import UXState, echo_status, spinner
 
 
 def analyze(
@@ -102,7 +103,8 @@ def analyze(
         os.environ[f"GITSUMMARY_{provider_key}_MODEL"] = model
 
     try:
-        commits = list_commits_in_range(revision_range)
+        with spinner(f"Resolving commits for {revision_range}", final_state=UXState.SUCCESS):
+            commits = list_commits_in_range(revision_range)
     except GitCommandError as exc:
         typer.secho(f"Error: {exc}", err=True, fg=typer.colors.RED)
         raise typer.Exit(code=2) from exc
@@ -118,7 +120,10 @@ def analyze(
     if not dry_run:
         provider_info = f" (provider: {provider})" if provider else ""
         llm_info = f" with LLM{provider_info}" if use_llm else " (heuristic only)"
-        typer.echo(f"Analyzing {len(commits)} commit(s) in {revision_range}{llm_info}...")
+        echo_status(
+            f"Analyzing {len(commits)} commit(s) in {revision_range}{llm_info}",
+            UXState.STARTING,
+        )
 
     # Initialize the analyzer service (single instance for batch efficiency)
     analyzer = AnalyzerService(use_llm=use_llm, provider_name=provider)
@@ -172,9 +177,12 @@ def analyze(
 
     if not dry_run:
         typer.echo("")
-        typer.echo(f"Summary: {analyzed} analyzed, {skipped} skipped, {errors} errors")
+        echo_status(
+            f"Summary: {analyzed} analyzed, {skipped} skipped, {errors} errors",
+            UXState.INFO,
+        )
         if analyzed > 0:
-            typer.echo("Artifacts stored in refs/notes/intent")
+            echo_status("Artifacts stored in refs/notes/intent", UXState.SUCCESS)
 
     # Exit codes per CLI spec
     if errors > 0 and analyzed == 0:

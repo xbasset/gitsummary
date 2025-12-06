@@ -7,6 +7,7 @@ from .html_feed import format_artifact_feed_html
 from .impact import format_impact_markdown
 from .release_notes import (
     format_release_note_markdown,
+    format_release_note_html,
     format_release_note_text,
 )
 
@@ -15,5 +16,6 @@ __all__ = [
     "format_artifact_feed_html",
     "format_impact_markdown",
     "format_release_note_markdown",
+    "format_release_note_html",
     "format_release_note_text",
 ]

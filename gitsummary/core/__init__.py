@@ -13,10 +13,19 @@ from __future__ import annotations
 
 from .artifact import CommitArtifact
 from .enums import ChangeCategory, ImpactScope
-from .models import CommitDiff, CommitInfo, DiffHunk, DiffStat, FileChange, FileDiff
+from .models import (
+    CommitDiff,
+    CommitInfo,
+    DiffHunk,
+    DiffStat,
+    FileChange,
+    FileDiff,
+    TagInfo,
+)
 __all__ = [
     # Models
     "CommitInfo",
+    "TagInfo",
     "FileChange",
     "DiffStat",
     "DiffHunk",

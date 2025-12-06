@@ -108,12 +108,21 @@ class OpenAIProvider(BaseLLMProvider):
         super().__init__(config)
 
         # Initialize the client
-        self._client = OpenAI(
-            api_key=self.config.api_key,
-            base_url=self.config.api_base,
-            timeout=self.config.timeout,
-            max_retries=0,  # We handle retries ourselves for better control
-        )
+        try:
+            self._client = OpenAI(
+                api_key=self.config.api_key,
+                base_url=self.config.api_base,
+                timeout=self.config.timeout,
+                max_retries=0,  # We handle retries ourselves for better control
+            )
+        except TypeError as exc:
+            # Older openai versions (<1.0) lack some kwargs and raise cryptic errors.
+            if "proxies" in str(exc):
+                raise ProviderNotAvailableError(
+                    "Installed 'openai' package is incompatible. "
+                    "Upgrade to openai>=1.0.0 to use the OpenAI provider."
+                ) from exc
+            raise
 
     def _validate_config(self) -> None:
         """Validate OpenAI-specific configuration."""

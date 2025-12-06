@@ -8,11 +8,11 @@ Modules:
     show: The `show` command for displaying artifacts
     list_cmd: The `list` command for listing commits and their status
     generate: The `generate` subcommands for report generation
+    release_note: The `release-note` command for tagged releases
 """
 
 from __future__ import annotations
 
-from . import analyze, generate, list_cmd, show
+from . import analyze, generate, list_cmd, release_note, show
 
-__all__ = ["analyze", "show", "list_cmd", "generate"]
-
+__all__ = ["analyze", "show", "list_cmd", "generate", "release_note"]

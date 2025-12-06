@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime
+import time
 from typing import Any, Dict, List, Optional, Tuple
 
 from ..core import ChangeCategory, CommitArtifact, CommitInfo, ImpactScope
+from ..tracing import trace_manager
 from ..reports.release_notes import (
     BugFix,
     CallToAction,
@@ -214,13 +216,52 @@ class ReleaseNoteSynthesizer:
             product_name, version, artifacts_summary
         )
 
-        response = self.provider.extract_structured(
-            user_prompt,
-            ReleaseNoteSynthesisSchema,
-            system_prompt=RELEASE_NOTE_SYSTEM_PROMPT,
-        )
+        response: Optional[Any] = None
+        started = time.time()
+        success = False
+        refusal: Optional[str] = None
+        token_usage: Optional[Dict[str, Any]] = None
+        raw_text: Optional[str] = None
+        model_name: Optional[str] = None
+        try:
+            response = self.provider.extract_structured(
+                user_prompt,
+                ReleaseNoteSynthesisSchema,
+                system_prompt=RELEASE_NOTE_SYSTEM_PROMPT,
+            )
+            success = response.success
+            refusal = response.refusal
+            raw_text = response.raw_text
+            model_name = response.model
+            token_usage = {
+                "prompt_tokens": response.prompt_tokens,
+                "completion_tokens": response.completion_tokens,
+                "total_tokens": response.total_tokens,
+            }
+        except Exception as exc:  # noqa: BLE001
+            refusal = str(exc)
+            raise
+        finally:
+            duration = time.time() - started
+            trace_manager.log_llm_call(
+                provider=getattr(self.provider, "name", None),
+                model=model_name,
+                system_prompt=RELEASE_NOTE_SYSTEM_PROMPT,
+                prompt=user_prompt,
+                input_context={
+                    "product_name": product_name,
+                    "version": version,
+                    "artifact_count": len(artifacts_data),
+                },
+                response=response.parsed if response else None,  # type: ignore[union-attr]
+                raw_text=raw_text,
+                refusal=refusal,
+                token_usage=token_usage,
+                success=success,
+                duration_seconds=duration,
+            )
 
-        if response.parsed:
+        if response and response.parsed:
             return response.parsed
 
         return self._synthesize_heuristic_from_data(artifacts_data)
