@@ -149,3 +149,10 @@
 - Interactive refinement mode (`--interactive`)
 - Template customization (Jinja2 templates)
 - Multi-language support
+
+## Step 13: Trace Coverage Hardening (In Progress)
+- **Status:** In progress.
+- **Goal:** Ensure every CLI path leaves a structured trace with output references for downstream analysis.
+- **Progress:** Added trace hooks for generated report outputs (changelog, release notes, impact, feed) and centralized release-note Git Notes logging.
+- **Next:** Consider tracing interactive prompts in remaining commands and add coverage for future report formats.
+- **Reference:** `workdir/step-13-tracing-completeness.md`.

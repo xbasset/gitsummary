@@ -250,10 +250,6 @@ def release_note(
             f"Release note stored in Git Notes for {commits[0].short_sha}",
             fg=typer.colors.GREEN,
         )
-        trace_manager.log_output_reference(
-            kind="git_note_release_note",
-            location=f"{RELEASE_NOTE_NOTES_REF}:{commits[0].sha}",
-        )
     except GitCommandError as exc:
         trace_manager.log_error(
             message="Failed to store release note",
