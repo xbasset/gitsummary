@@ -1,114 +1,41 @@
-# **gitsummary — Let Your Codebase Explain Itself**
+# gitsummary
 
-**For Release Managers and teams who need to understand what happened.**
+Release notes in one line: `gitsummary release-note latest` builds and displays release notes for your latest tag, re-analyzing commits if needed (`--reanalyze`) or staying offline (`--no-llm`).
 
-You have a range of 500 commits between `v1.0` and `v1.1`. The commit messages are a mix of "fix typo", "wip", and "update logic". You need to write accurate release notes and assess the risk of this deployment.
+## Why
+- Understand *why* code changed and *who* it affects, not just which lines moved.
+- Store semantic artifacts in Git Notes so reports are reproducible and portable.
+- Generate release notes, changelogs, and impact summaries on demand.
 
-Reading raw `git log` and `git diff` is noise. You don't need to know *which lines* changed; you need to know *why* they changed and *what impact* they have on users.
-
-**gitsummary** solves this by acting as an **Automated Historian**.
-
-1.  **It Reads:** It scans your raw git history (offline, no GitHub/GitLab APIs needed).
-2.  **It Understands:** It uses LLMs to reverse-engineer the "Intent" and "Impact" behind the code changes.
-3.  **It Remembers:** It stores this semantic understanding as durable **Artifacts** directly in your repo (using Git Notes).
-4.  **It Reports:** It generates clear, human-readable Release Notes and Change Summaries on demand.
-
----
-
-## Installation
-
-The project is intentionally lightweight and has no packaging metadata yet. Install the runtime dependencies and execute directly from the repository:
-
+## Quickstart
 ```bash
-pip install -r requirements.txt  # optional if Typer not yet available
-python -m gitsummary --help
-```
+# Install (use a virtualenv)
+pip install -r requirements.txt
 
-## Usage
-
-### 1. Analyze Commits (Build Understanding)
-
-```bash
-gitsummary analyze v1.0..v2.0
-```
-*Reads commits in the range, uses LLM to extract semantic understanding (intent, impact, behavior changes), and stores artifacts in Git Notes.*
-
-```bash
-# Preview without storing
-gitsummary analyze v1.0..v2.0 --dry-run
-
-# Force re-analysis of existing artifacts
-gitsummary analyze v1.0..v2.0 --force
-```
-
-### 2. Generate Reports (Create Documents)
-
-```bash
-gitsummary generate changelog v1.0..v2.0
-```
-*Reads stored artifacts and produces a formatted changelog.*
-
-```bash
-# Release notes (LLM by default; use --no-llm to skip)
-gitsummary generate release-notes v1.0..v2.0 -o RELEASE_NOTES.md --store
-
-# Impact summary
-gitsummary generate impact v1.0..v2.0
-
-# Generate JSON for CI pipelines
-gitsummary generate changelog v1.0..v2.0 --format json
-
-# Scrollable HTML artifact feed (writes <project>-feed.html by default)
-gitsummary generate feed v1.0..v2.0 --open
-```
-
-### 3. Inspect and Discover
-
-```bash
-# Show artifact for a single commit
-gitsummary show abc123
-
-# List commits with their analysis status (relative dates by default)
-gitsummary list v1.0..v2.0
-
-# List with absolute dates
-gitsummary list v1.0..v2.0 --date
-
-# Find commits that need analysis
-gitsummary list v1.0..v2.0 --missing
-
-# Show stored release notes for a revision (tip commit/tag)
-gitsummary show release-note v2.0
-```
-
-## The Two-Phase Model
-
-```
-Raw Git Data  ──[analyze]──▶  Semantic Artifacts  ──[generate]──▶  Reports
-   (noise)                      (understanding)                  (documents)
-```
-
-- **`analyze`**: Expensive (LLM), runs once per commit, stores durable artifacts
-- **`generate`**: Cheap, runs from cached artifacts, produces multiple formats
-
-## Development
-
-- **Status:** Active development (LLM-assisted release notes shipped).
-- **Focus:** Release Manager use case.
-- **Docs:** See `docs/project_summary.md` and `docs/cli_design.md` for architecture and CLI reference.
-
-## Development Commands
-
-```bash
-# Validate CLI entry point
+# Get help
 python -m gitsummary --help
 
-# Run analysis (once implemented)
-python -m gitsummary analyze v0.1.0..v0.2.0
+# One-liner release notes for the latest tag
+gitsummary release-note latest
 
-# Generate changelog
-python -m gitsummary generate changelog v0.1.0..v0.2.0
-
-# Generate release notes and store to Git Notes (refs/notes/report/release-note)
-python -m gitsummary generate release-notes v0.1.0..v0.2.0 --store
+# Force fresh analysis or stay offline
+gitsummary release-note latest --reanalyze
+gitsummary release-note latest --no-llm
 ```
+
+## Core commands
+- Analyze commits: `gitsummary analyze <range> [--dry-run] [--no-llm]`
+- One-shot release notes: `gitsummary release-note latest [--reanalyze] [--no-llm]`
+- Changelog: `gitsummary generate changelog <range> [--format json]`
+- Show stored artifacts/notes: `gitsummary show <commit>` / `gitsummary show release-note <rev>`
+- List commit analysis status: `gitsummary list <range> [--missing]`
+
+## Docs
+- Start here: `docs/index.md` (orientation, commands, architecture map)
+- CLI design and usage: `docs/cli_design.md`
+- Storage layout: `docs/storage_layout.md`
+
+## Contributing & license
+- Contributions welcome — see `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md`.
+- Security reports: `SECURITY.md`.
+- License: MIT (see `LICENSE`).

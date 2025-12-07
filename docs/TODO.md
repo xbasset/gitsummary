@@ -309,3 +309,18 @@ Allow users to interactively refine generated reports before finalizing:
 - `gitsummary/cli/commands/generate.py`: JSON changelog omits a dedicated `security` section while Markdown includes one; add explicit security grouping for parity.
 - `gitsummary/cli/commands/generate.py`: `--format text` is advertised but falls back to Markdown without warning; implement or remove/rename to avoid confusing consumers expecting plain text.
 - Tests: No automated tests (`tests/` missing); add coverage for analyze flow, Git Notes persistence, and reporter formatting to prevent regressions.
+
+---
+
+## Open-Source Polish (Pre-Release)
+
+**Goal:** Present a clean, approachable repo that highlights the one-line `release-note latest` workflow while keeping deeper architecture discoverable but out of the way.
+
+**Tasks:**
+- [x] Refresh `README.md` with a concise value prop, 30-second Quickstart featuring `gitsummary release-note latest`, and links to deeper docs instead of inline walls of text.
+- [x] Add/verify LICENSE, CONTRIBUTING, CODE_OF_CONDUCT, and SECURITY docs; ensure `.gitsummary/` runtime files stay ignored except config.
+- [x] Restructure docs with a lightweight `docs/index.md` that orients newcomers (Quickstart, CLI overview, storage layout, architecture map) and links to existing detailed specs.
+- [x] Add a tiny `examples/` folder with a recorded `release-note latest` transcript and a scrubbed sample HTML/Markdown output.
+- [ ] Highlight `--reanalyze` / `--no-llm` and actionable error hints (e.g., OpenAI version) in CLI help/examples.
+- [ ] Add a minimal CI workflow (lint/check + pytest) and document local testing in CONTRIBUTING.
+- [ ] Publish a prerelease changelog and roadmap section summarizing current capabilities and known limitations.
