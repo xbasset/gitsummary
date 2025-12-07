@@ -33,6 +33,7 @@ from ...renderers import (
 )
 from ...reports import ReleaseNote
 from ...services import ReporterService
+from ...tracing import trace_manager
 from ..ui import UXState, echo_status, spinner
 
 
@@ -110,7 +111,13 @@ def generate_changelog(
     else:
         output = format_changelog_markdown(revision_range, report)
 
-    _write_output(output, output_file)
+    _write_output(
+        output,
+        output_file,
+        kind="changelog_report",
+        format_hint=output_format,
+        metadata={"revision_range": revision_range},
+    )
 
 
 def generate_feed(
@@ -170,6 +177,11 @@ def generate_feed(
     output_path = Path(output_file) if output_file else Path(repository_root()) / default_name
     output_path.write_text(html_output, encoding="utf-8")
     typer.echo(f"Feed written to {output_path}")
+    trace_manager.log_output_reference(
+        kind="artifact_feed",
+        location=str(output_path.resolve()),
+        metadata={"revision_range": revision_range},
+    )
 
     if open_browser:
         try:
@@ -313,7 +325,17 @@ def generate_release_notes(
     else:  # markdown
         output = format_release_note_markdown(release_note)
 
-    _write_output(output, output_file)
+    _write_output(
+        output,
+        output_file,
+        kind="release_notes_report",
+        format_hint=output_format,
+        metadata={
+            "revision_range": revision_range,
+            "product_name": product_name,
+            "version": version,
+        },
+    )
 
 
 def _get_llm_provider(provider_name: Optional[str], model: Optional[str]):
@@ -398,7 +420,13 @@ def generate_impact(
     else:
         output = format_impact_markdown(revision_range, report)
 
-    _write_output(output, output_file)
+    _write_output(
+        output,
+        output_file,
+        kind="impact_report",
+        format_hint=output_format,
+        metadata={"revision_range": revision_range},
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -406,14 +434,35 @@ def generate_impact(
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def _write_output(output: str, output_file: Optional[str]) -> None:
-    """Write output to file or stdout."""
+def _write_output(
+    output: str,
+    output_file: Optional[str],
+    *,
+    kind: str,
+    format_hint: Optional[str] = None,
+    metadata: Optional[dict] = None,
+) -> None:
+    """Write output to file or stdout and log the destination."""
+    meta = dict(metadata or {})
+    if format_hint:
+        meta.setdefault("format", format_hint)
+
     if output_file:
-        with open(output_file, "w", encoding="utf-8") as f:
-            f.write(output)
+        path = Path(output_file)
+        path.write_text(output, encoding="utf-8")
         typer.echo(f"Report written to {output_file}")
+        trace_manager.log_output_reference(
+            kind=kind,
+            location=str(path.resolve()),
+            metadata=meta,
+        )
     else:
         typer.echo(output)
+        trace_manager.log_output_reference(
+            kind=f"{kind}_stdout",
+            location="stdout",
+            metadata=meta,
+        )
 
 
 def _safe_project_name(name: str) -> str:

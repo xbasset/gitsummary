@@ -14,6 +14,7 @@ from __future__ import annotations
 from typing import Optional
 
 from .git import GitCommandError, run
+from ..tracing import trace_manager
 
 # Default notes namespace for gitsummary artifacts
 NOTES_REF = "refs/notes/intent"
@@ -99,6 +100,10 @@ def save_release_note(sha: str, content: str) -> None:
         content: The release note content (YAML format).
     """
     notes_write(sha, content, notes_ref=RELEASE_NOTE_NOTES_REF)
+    trace_manager.log_output_reference(
+        kind="git_note_release_note",
+        location=f"{RELEASE_NOTE_NOTES_REF}:{sha}",
+    )
 
 
 def load_release_note(sha: str) -> Optional[str]:
@@ -123,4 +128,3 @@ def release_note_exists(sha: str) -> bool:
         True if a release note exists.
     """
     return notes_exists(sha, notes_ref=RELEASE_NOTE_NOTES_REF)
-
