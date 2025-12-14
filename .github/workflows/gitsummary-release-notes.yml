@@ -65,13 +65,15 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GITSUMMARY_PROVIDER: openai
+          GITSUMMARY_OPENAI_MODEL: gpt-5.1
         run: |
-          gitsummary analyze "${{ steps.range.outputs.range }}" --no-use-llm --verbose
+          gitsummary analyze "${{ steps.range.outputs.range }}" --verbose
 
       - name: Generate release notes markdown
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GITSUMMARY_PROVIDER: openai
+          GITSUMMARY_OPENAI_MODEL: gpt-5.1
           TAG: ${{ steps.range.outputs.tag }}
           RANGE: ${{ steps.range.outputs.range }}
         run: |
