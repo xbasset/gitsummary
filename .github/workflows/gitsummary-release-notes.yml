@@ -20,11 +20,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configure git identity
-        run: |
-          git config --global user.email "actions@users.noreply.github.com"
-          git config --global user.name "github-actions"
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -72,13 +67,14 @@ jobs:
           GITSUMMARY_PROVIDER: openai
           GITSUMMARY_OPENAI_MODEL: gpt-5.1
         run: |
+          git config --global user.email "actions@users.noreply.github.com"
+          git config --global user.name "github-actions"
           gitsummary analyze "${{ steps.range.outputs.range }}" --verbose
 
       - name: Generate release notes markdown
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GITSUMMARY_PROVIDER: openai
-          GITSUMMARY_OPENAI_MODEL: gpt-5.1
           TAG: ${{ steps.range.outputs.tag }}
           RANGE: ${{ steps.range.outputs.range }}
         run: |
