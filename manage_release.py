@@ -102,14 +102,14 @@ def run_gh_api_json(
                 continue
             cmd.extend(["-f", f"{key}={value}"])
 
-    input_bytes: Optional[bytes] = None
+    input_text: Optional[str] = None
     if input_body is not None:
         cmd.extend(["--input", "-"])
-        input_bytes = json.dumps(input_body).encode()
+        input_text = json.dumps(input_body)
 
     result = subprocess.run(
         cmd,
-        input=input_bytes,
+        input=input_text,
         capture_output=True,
         text=True,
         check=False,
