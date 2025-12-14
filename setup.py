@@ -17,6 +17,10 @@ setup(
     python_requires=">=3.10",
     install_requires=[
         "typer>=0.9",
+        "PyYAML>=6.0",
+        "pydantic>=2.0",
+        "openai>=1.0.0",
+        "python-dotenv>=1.0.0",
     ],
     entry_points={
         "console_scripts": [
