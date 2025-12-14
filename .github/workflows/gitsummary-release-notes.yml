@@ -25,7 +25,7 @@ jobs:
       - name: Install gitsummary
         run: |
           python -m pip install --upgrade pip
-          pip install gitsummary
+          pip install .
 
       - name: Ensure OpenAI key is configured
         env:
