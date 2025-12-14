@@ -30,6 +30,10 @@ app.add_typer(generate_app, name="generate")
 show_app = typer.Typer(help="Display stored artifacts and reports.")
 app.add_typer(show_app, name="show")
 
+# Create init subapp
+init_app = typer.Typer(help="Bootstrap gitsummary automation in a repository.")
+app.add_typer(init_app, name="init")
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Root Commands
@@ -86,7 +90,7 @@ def version() -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Import commands after app is created to avoid circular imports
-from .commands import analyze, generate, list_cmd, release_note, show  # noqa: E402, F401
+from .commands import analyze, generate, init, list_cmd, release_note, show  # noqa: E402, F401
 
 # Register commands
 app.command()(analyze.analyze)
@@ -96,6 +100,9 @@ app.command("list")(list_cmd.list_commits)
 # Register show subcommands
 show_app.command("commit")(show.show)  # show commit <sha>
 show_app.command("release-note")(show.show_release_note)  # show release-note <revision>
+
+# Register init subcommands
+init_app.command("github-release-notes")(init.github_release_notes)
 
 # Register generate subcommands
 generate_app.command("changelog")(generate.generate_changelog)

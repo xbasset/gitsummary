@@ -12,9 +12,9 @@ These artifacts become durable metadata living alongside the code.
 
 ⸻
 
-2. Constraint: Pure Git Source
+2. Constraint: Pure Git Source (core engine)
 
-You intentionally avoid relying on GitHub/GitLab APIs.
+The **core engine** intentionally avoids relying on GitHub/GitLab APIs.
 You want this tool to work:
 	•	Offline
 	•	In any Git hosting environment
@@ -26,6 +26,8 @@ This means all semantic inference must come from:
 	•	File paths/types
 	•	Code changes
 	•	Repository conventions
+
+**Optional integrations:** You can still wire gitsummary into host-specific automation (e.g., GitHub Actions updating Release bodies) without changing the core model. The product stance is: *git-native by default, integrations as an opt-in edge layer*.
 
 **Note on AI/LLM:** We rely on current generation LLMs (large context, reasoning) to bridge the gap between raw diffs and semantic intent ("The Magic Wand").
 

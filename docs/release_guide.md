@@ -69,6 +69,51 @@ Notes
   - CLI: `gh release create v0.3.0-alpha.1 --notes "Release v0.3.0-alpha.1"` (add `--prerelease` if appropriate).
   - You can automate this in CI (on tag push) by running `gh release create` after your build/publish step.  
 
+gitsummary automated release notes (recommended)
+----------------------------------------------
+
+If you publish GitHub Releases, you can fully automate release notes generation with **one command**:
+
+```bash
+gitsummary init github-release-notes
+```
+
+What this installs:
+- A GitHub Actions workflow triggered on **Release published**
+- A `release-notes/` directory for persisted markdown artifacts
+
+What happens on every release:
+- Computes the revision range (previous published release → current tag)
+- Runs `gitsummary analyze <range>`
+- Generates `release-notes/<tag>.md`
+- Updates the GitHub Release body from that file
+- Opens a PR committing the file back into the repo (auditable + reviewable)
+
+### Required setup (CI)
+
+Because CI is non-interactive, this workflow **fails fast** if the OpenAI key is missing:
+- Add a repo secret named `OPENAI_API_KEY` in GitHub Actions.
+
+Optional CLI:
+
+```bash
+gh secret set OPENAI_API_KEY --body "<your-key>"
+```
+
+### Works with `manage_release.py`
+
+`manage_release.py` creates tags (and optionally the commit/tag), but it does not publish a GitHub Release.
+To trigger the workflow, you need to publish a Release for that tag (UI or `gh release create ...`).
+
+Version bumps on main (no Release)
+---------------------------------
+
+If you want the repository version to move forward on every merge to `main` without creating tags or Releases,
+enable the workflow `.github/workflows/bump-version-on-main.yml`.
+
+This workflow bumps `gitsummary/__init__.py` from `X.Y.Z` to `X.Y.(Z+1)` and pushes a commit to `main`.
+Releases remain manual and are not triggered by this bump.
+
 GitHub Actions workflow example
 -------------------------------
 This sample workflow builds with `uv`, publishes to PyPI (or another index), and creates a GitHub Release for every `v*.*.*` tag. Adjust names, secrets, and publish command to your environment.
