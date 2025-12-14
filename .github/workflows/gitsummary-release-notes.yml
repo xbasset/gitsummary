@@ -11,6 +11,9 @@ permissions:
 jobs:
   release-notes:
     runs-on: ubuntu-latest
+    env:
+      GITSUMMARY_PROVIDER: openai
+      GITSUMMARY_OPENAI_MODEL: gpt-5.1
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -58,12 +61,12 @@ jobs:
             echo "range=${ROOT_SHA}..${TAG}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Analyze commits (LLM enabled)
+      - name: Analyze commits
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GITSUMMARY_PROVIDER: openai
         run: |
-          gitsummary analyze "${{ steps.range.outputs.range }}"
+          gitsummary analyze "${{ steps.range.outputs.range }}" --no-use-llm --verbose
 
       - name: Generate release notes markdown
         env:
