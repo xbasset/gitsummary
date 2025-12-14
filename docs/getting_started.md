@@ -4,6 +4,43 @@ A step-by-step guide to install gitsummary from source and test it on any Git re
 
 ---
 
+## Automate release notes on every GitHub Release
+
+Release notes often fail for boring reasons: they’re manual, easy to forget, and hard to keep consistent.
+If you ship via GitHub Releases, gitsummary can automate release notes in a way that’s easy to review:
+
+- **Setup**: run `gitsummary init github-release-notes`, then add the `OPENAI_API_KEY` GitHub Actions secret.
+- **On every Release publish**:
+  - Generates `release-notes/<tag>.md`
+  - Updates the **GitHub Release body**
+  - Opens a **PR** that commits the markdown file
+
+### Quick setup
+
+From the repo you want to onboard:
+
+```bash
+gitsummary init github-release-notes
+git add .github/workflows/gitsummary-release-notes.yml release-notes/README.md
+git commit -m "chore: enable automated release notes"
+git push
+```
+
+Then add the required secret:
+- GitHub UI: Settings → Secrets and variables → Actions → New repository secret
+  - Name: `OPENAI_API_KEY`
+  - Value: your OpenAI API key
+
+Optional CLI (if you use `gh`):
+
+```bash
+gh secret set OPENAI_API_KEY --body "<your-key>"
+```
+
+After that, publish a GitHub Release (UI or `gh release create ...`). The workflow triggers on **Release published** and does the rest.
+
+---
+
 ## Prerequisites
 
 - **Python 3.10+** — Check with `python3 --version`
@@ -80,6 +117,7 @@ gitsummary --help
 ╭─ Commands ────────────────────────────────────────────────────────────────────╮
 │ analyze   Extract semantic understanding from commits and store as artifacts. │
 │ generate  Generate reports from analyzed artifacts.                           │
+│ init      Bootstrap gitsummary automation in a repository.                    │
 │ list      List commits and their analysis status.                             │
 │ show      Display artifacts or stored reports.                          │
 │ version   Print version information.                                          │

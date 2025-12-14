@@ -205,6 +205,14 @@ class ConfigManager:
 
         return None
 
+    def save_api_key(self, provider: str, api_key: str) -> bool:
+        """Persist an API key for a provider to the user config file.
+
+        Note: this is intended for interactive onboarding commands.
+        """
+        config_key = f"{provider.upper()}_API_KEY"
+        return self._save_to_config_file(config_key, api_key.strip())
+
     def _prompt_for_key(
         self,
         provider: str,

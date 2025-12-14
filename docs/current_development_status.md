@@ -9,6 +9,7 @@
 - Git Notes writes may require elevated permissions on some systems; rerun commands with appropriate privileges if you see `Operation not permitted` errors when creating notes or tags.
 - New: `gitsummary generate feed <range>` outputs a mobile-friendly HTML feed. Missing artifacts show playful CTAs with copyable `gitsummary analyze` commands.
 - New: `gitsummary release-note latest` fetches tags, checks analysis coverage, and writes Markdown to Git Notes plus an HTML copy under `release-notes/`.
+- New: `gitsummary init github-release-notes` scaffolds GitHub Actions automation to generate release notes on every GitHub Release publish, update the Release body, and open a PR committing `release-notes/<tag>.md`.
 
 ## Step 1: Ground the Problem & Constraints (Complete)
 - **Status:** Done.
@@ -156,3 +157,12 @@
 - **Progress:** Added trace hooks for generated report outputs (changelog, release notes, impact, feed) and centralized release-note Git Notes logging.
 - **Next:** Consider tracing interactive prompts in remaining commands and add coverage for future report formats.
 - **Reference:** `workdir/step-13-tracing-completeness.md`.
+
+## Step 14: One-Action Onboarding for GitHub Release Notes (In Progress)
+- **Status:** In progress.
+- **Goal:** Make “latest release notes” the default habit: one command installs automation; CI generates reviewable, user-facing release notes.
+- **Implemented (this milestone):**
+  - `gitsummary init github-release-notes` scaffolds a GitHub Actions workflow
+  - Workflow updates GitHub Release body + opens a PR committing `release-notes/<tag>.md`
+  - CI fails fast if `OPENAI_API_KEY` is not configured (non-interactive by design)
+- **Reference:** `workdir/step-14-one-action-onboarding.md` (added in this milestone).

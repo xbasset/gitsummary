@@ -91,6 +91,7 @@ def test_release_note_latest_writes_html(
         output_dir=str(output_dir),
         no_open=True,
         use_llm=False,
+        reanalyze=False,
         provider=None,
         model=None,
     )
@@ -154,6 +155,7 @@ def test_release_note_existing_uses_stored(
         output_dir=str(output_dir),
         no_open=True,
         use_llm=False,
+        reanalyze=False,
         provider=None,
         model=None,
     )

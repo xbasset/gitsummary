@@ -1,0 +1,63 @@
+name: Bump patch version on main
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bump-version-main
+  cancel-in-progress: false
+
+jobs:
+  bump-patch:
+    # Avoid an infinite loop: the push created by this workflow will be authored
+    # by github-actions[bot], and we skip in that case.
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Skip if this is already a version bump commit
+        run: |
+          set -euo pipefail
+          SUBJECT="$(git log -1 --pretty=%s)"
+          if echo "$SUBJECT" | grep -q "^chore(version): bump patch to "; then
+            echo "Already a version bump commit; skipping."
+            exit 0
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Bump patch version
+        id: bump
+        run: |
+          set -euo pipefail
+          python scripts/bump_patch_version.py gitsummary/__init__.py | tee bump.out
+          NEW_VERSION="$(grep '^new_version=' bump.out | cut -d= -f2)"
+          echo "new_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push
+        env:
+          NEW_VERSION: ${{ steps.bump.outputs.new_version }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add gitsummary/__init__.py
+          git commit -m "chore(version): bump patch to ${NEW_VERSION}"
+          git push
+
+
