@@ -80,14 +80,15 @@ gitsummary init github-release-notes
 
 What this installs:
 - A GitHub Actions workflow triggered on **Release published**
-- A `release-notes/` directory for persisted markdown artifacts
+- No repository commits (release notes live outside the repo)
 
 What happens on every release:
 - Computes the revision range (previous published release → current tag)
-- Runs `gitsummary analyze <range>`
-- Generates `release-notes/<tag>.md`
-- Updates the GitHub Release body from that file
-- Opens a PR committing the file back into the repo (auditable + reviewable)
+- Fetches Git Notes refs (read-only) to reuse existing per-commit artifacts
+- Computes missing commit artifacts **in-memory** (does not write Git Notes)
+- Generates a markdown release note
+- Uploads the markdown as a GitHub Actions workflow artifact
+- Updates the GitHub Release body from that markdown
 
 ### Required setup (CI)
 

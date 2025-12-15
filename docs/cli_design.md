@@ -95,6 +95,19 @@ Set `GITSUMMARY_TRACING_ENABLED=0` (or edit the config) to disable tracing. When
 
 ## Commands
 
+### `gitsummary ci`
+**Purpose:** CI-safe generation that reuses Git Notes without writing them.
+
+This command group is designed for automation environments where we want to:
+- reuse existing per-commit artifacts from Git Notes (read-only)
+- compute missing artifacts in-memory (no `git notes add`)
+- produce a release note file suitable for CI artifacts or release publishing
+
+**Example:**
+```bash
+gitsummary ci release-notes v1.0..v2.0 --output "$RUNNER_TEMP/release-notes.md"
+```
+
 ### `gitsummary analyze`
 **Purpose:** Extract semantic understanding from commits and store as artifacts.
 
