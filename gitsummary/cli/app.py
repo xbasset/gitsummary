@@ -34,6 +34,10 @@ app.add_typer(show_app, name="show")
 init_app = typer.Typer(help="Bootstrap gitsummary automation in a repository.")
 app.add_typer(init_app, name="init")
 
+# Create CI subapp
+ci_app = typer.Typer(help="CI-focused commands (no Git Notes writes).")
+app.add_typer(ci_app, name="ci")
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Root Commands
@@ -90,7 +94,7 @@ def version() -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Import commands after app is created to avoid circular imports
-from .commands import analyze, generate, init, list_cmd, release_note, show  # noqa: E402, F401
+from .commands import analyze, ci, generate, init, list_cmd, release_note, show  # noqa: E402, F401
 
 # Register commands
 app.command()(analyze.analyze)
@@ -109,3 +113,6 @@ generate_app.command("changelog")(generate.generate_changelog)
 generate_app.command("feed")(generate.generate_feed)
 generate_app.command("release-notes")(generate.generate_release_notes)
 generate_app.command("impact")(generate.generate_impact)
+
+# Register CI subcommands
+ci_app.command("release-notes")(ci.release_notes)

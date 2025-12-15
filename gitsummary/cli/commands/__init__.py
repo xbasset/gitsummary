@@ -13,6 +13,6 @@ Modules:
 
 from __future__ import annotations
 
-from . import analyze, generate, init, list_cmd, release_note, show
+from . import analyze, ci, generate, init, list_cmd, release_note, show
 
-__all__ = ["analyze", "show", "list_cmd", "generate", "release_note", "init"]
+__all__ = ["analyze", "ci", "show", "list_cmd", "generate", "release_note", "init"]

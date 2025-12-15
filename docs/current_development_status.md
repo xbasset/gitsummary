@@ -7,9 +7,10 @@
 - For long ranges, run `gitsummary list <range> --missing` first, then `gitsummary analyze <range> --provider openai` without `--force` to skip already analyzed commits and avoid long reruns.
 - If the LLM request times out, switch to a lighter model (e.g., `--model gpt-4.1-mini`) when generating release notes: `gitsummary generate release-notes <range> --provider openai --model gpt-4.1-mini --store`.
 - Git Notes writes may require elevated permissions on some systems; rerun commands with appropriate privileges if you see `Operation not permitted` errors when creating notes or tags.
-- New: `gitsummary generate feed <range>` outputs a mobile-friendly HTML feed. Missing artifacts show playful CTAs with copyable `gitsummary analyze` commands.
-- New: `gitsummary release-note latest` fetches tags, checks analysis coverage, and writes Markdown to Git Notes plus an HTML copy under `release-notes/`.
-- New: `gitsummary init github-release-notes` scaffolds GitHub Actions automation to generate release notes on every GitHub Release publish, update the Release body, and open a PR committing `release-notes/<tag>.md`.
+- Feature: `gitsummary generate feed <range>` outputs a mobile-friendly HTML feed. Missing artifacts show playful CTAs with copyable `gitsummary analyze` commands.
+- Feature: `gitsummary release-note latest` fetches tags, checks analysis coverage, and writes Markdown to Git Notes plus an HTML copy under `release-notes/`.
+- Feature: `gitsummary ci release-notes <range>` generates release notes in CI without writing Git Notes (reuses pushed notes refs when available, computes missing artifacts in-memory).
+- Feature: `gitsummary init github-release-notes` scaffolds GitHub Actions automation to generate release notes on every GitHub Release publish, upload them as a workflow artifact, and update the Release body (no repo commits).
 
 ## Step 1: Ground the Problem & Constraints (Complete)
 - **Status:** Done.
