@@ -83,3 +83,4 @@ def test_gh_release_create_generates_notes_and_calls_gh(
     # Temp file should be cleaned up after the command.
     assert not notes_path.exists()
 
+
