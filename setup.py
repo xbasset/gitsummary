@@ -19,6 +19,7 @@ setup(
         "typer>=0.9",
         "PyYAML>=6.0",
         "pydantic>=2.0",
+        "psycopg[binary]>=3.1",
         "openai>=1.0.0",
         "python-dotenv>=1.0.0",
     ],

@@ -4,7 +4,7 @@ Release notes in one line: `gitsummary release-note latest` builds and displays 
 
 ## Why
 - Understand *why* code changed and *who* it affects, not just which lines moved.
-- Store semantic artifacts in Git Notes so reports are reproducible and portable.
+- Store semantic artifacts in Git Notes (default) or Postgres for shared storage.
 - Generate release notes, changelogs, and impact summaries on demand.
 
 ## Quickstart
@@ -34,6 +34,7 @@ gitsummary release-note latest --no-llm
 - Start here: `docs/index.md` (orientation, commands, architecture map)
 - CLI design and usage: `docs/cli_design.md`
 - Storage layout: `docs/storage_layout.md`
+- Install/update: `docs/install_update.md`
 
 ## Contributing & license
 - Contributions welcome — see `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md`.

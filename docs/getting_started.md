@@ -342,7 +342,9 @@ gitsummary analyze HEAD~3..HEAD --force
 
 ## Where Are Artifacts Stored?
 
-Artifacts are stored in **Git Notes** under `refs/notes/intent`. This means:
+Artifacts are stored in **Git Notes** under `refs/notes/intent` by default. You can also use Postgres with `--storage postgres` (or `GITSUMMARY_STORAGE_BACKEND=postgres`).
+
+When using Git Notes, this means:
 
 - They're part of your Git repository
 - They travel with the repo when pushed (if you push notes)

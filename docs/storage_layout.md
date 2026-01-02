@@ -3,7 +3,7 @@ Version: 0.1.0
 Date: 2025-11-26
 
 ## Overview
-**gitsummary** uses [Git Notes](https://git-scm.com/docs/git-notes) to store semantic artifacts directly in the `.git` directory. This ensures that the "Why" (the artifact) travels with the "What" (the commit) when pushed/pulled, without polluting the commit message or file tree.
+**gitsummary** stores semantic artifacts in Git Notes by default, with optional Postgres storage for shared or remote deployments. Git Notes keep the "Why" (the artifact) traveling with the "What" (the commit) when pushed/pulled, without polluting the commit message or file tree.
 
 ## 1. Storage Location
 - **Namespace:** `refs/notes/intent`
@@ -55,3 +55,33 @@ confidence_score: 0.95
 ## 5. Constraints
 - **Size:** Git Notes are blob objects. They handle large JSONs fine, but we should aim to keep artifacts under 100KB for performance.
 - **Merge Conflicts:** If two users analyze the same commit differently and push, Git Notes merge strategies apply (default is usually union or manual). For v0.1, "last write wins" (force overwrite) is acceptable.
+
+---
+
+## 6. Postgres Backend (Optional)
+
+When `--storage postgres` (or `GITSUMMARY_STORAGE_BACKEND=postgres`) is set, artifacts are stored in Postgres instead of Git Notes.
+
+### Table
+`artifacts`
+
+### Columns (relevant)
+- `id` (text, primary key)
+- `project_id` (text, references `projects.id`)
+- `content_type` (text, `gitsummary.commit_artifact`)
+- `source_ref` (text, commit SHA)
+- `schema_version` (text)
+- `generated_at` (timestamptz)
+- `summary` (text, CommitArtifact intent summary)
+- `tags` (text[])
+- `signals` (jsonb)
+- `commit` (jsonb, optional)
+- `raw_artifact` (jsonb, CommitArtifact payload + metadata)
+
+### Connection
+Set `GITSUMMARY_POSTGRES_DSN` to a libpq DSN or URL (e.g., `postgresql://user:pass@host:5432/gitsummary`).
+
+### Project Resolution
+When using Postgres, gitsummary resolves the project via:
+`GITSUMMARY_PROJECT_ID` / `GITSUMMARY_PROJECT_SLUG` / `GITSUMMARY_PROJECT_NAME` / `GITSUMMARY_PROJECT_PROVIDER` / `GITSUMMARY_PROJECT_URL`.
+If unset, it falls back to the repo name and a `local://<repo>` URL.

@@ -16,7 +16,7 @@ gitsummary operates in two distinct phases, reflected in its command naming:
 │  ─────────────────                                              │
 │  Input:  Git commits (messages, diffs, metadata)                │
 │  Action: LLM extracts semantic understanding                    │
-│  Output: CommitArtifact stored in Git Notes                     │
+│  Output: CommitArtifact stored in backend (default Git Notes)    │
 │                                                                 │
 │  Command: gitsummary analyze v1.0..v2.0                         │
 └─────────────────────────────────────────────────────────────────┘
@@ -25,7 +25,7 @@ gitsummary operates in two distinct phases, reflected in its command naming:
 ┌─────────────────────────────────────────────────────────────────┐
 │  Phase 2: GENERATE                                              │
 │  ─────────────────                                              │
-│  Input:  Stored artifacts from Git Notes                        │
+│  Input:  Stored artifacts from configured backend               │
 │  Action: Aggregate and format for specific output               │
 │  Output: Changelog, release notes, or other reports             │
 │                                                                 │
@@ -55,7 +55,7 @@ gitsummary operates in two distinct phases, reflected in its command naming:
 ### Benefits of Two-Phase Separation
 
 1. **Cost Efficiency**: LLM analysis is expensive; analyze once, generate many reports
-2. **Cacheability**: Artifacts persist in Git Notes; regenerating reports is cheap
+2. **Cacheability**: Artifacts persist in Git Notes or Postgres; regenerating reports is cheap
 3. **Shareability**: Analyzed artifacts travel with the repo via `git push/fetch`
 4. **Flexibility**: Same artifacts → changelog, release notes, impact report, etc.
 
@@ -96,10 +96,10 @@ Set `GITSUMMARY_TRACING_ENABLED=0` (or edit the config) to disable tracing. When
 ## Commands
 
 ### `gitsummary ci`
-**Purpose:** CI-safe generation that reuses Git Notes without writing them.
+**Purpose:** CI-safe generation that reuses stored artifacts without writing Git Notes.
 
 This command group is designed for automation environments where we want to:
-- reuse existing per-commit artifacts from Git Notes (read-only)
+- reuse existing per-commit artifacts from the selected backend (read-only)
 - compute missing artifacts in-memory (no `git notes add`)
 - produce a release note file suitable for CI artifacts or release publishing
 
@@ -133,13 +133,13 @@ gitsummary analyze <commit>
 **Options:**
 | Option | Description |
 |--------|-------------|
-| `--dry-run` | Print artifacts in default YAML format without storing in Git Notes |
+| `--dry-run` | Print artifacts in default YAML format without storing |
 | `--force, -f` | Overwrite existing artifacts |
 | `--json` | Output as JSON (implies `--dry-run`) |
 | `--reanalyze-existing` | Re-analyze commits with existing artifacts (default to false) |
 
 **Description:**
-Resolves the given range to individual commits, generates a `CommitArtifact` for each using LLM analysis, and stores the result in the `refs/notes/intent` Git Notes namespace.
+Resolves the given range to individual commits, generates a `CommitArtifact` for each using LLM analysis, and stores the result in the selected backend (default: `refs/notes/intent`).
 
 **Examples:**
 ```bash
@@ -449,8 +449,13 @@ Schema version: 0.1.0
 
 ## Storage
 
+### Storage Backends
+Artifacts are stored in Git Notes by default, with optional Postgres support.
+
+Use `--storage notes|postgres` (or `GITSUMMARY_STORAGE_BACKEND`) to select the backend.
+
 ### Git Notes Namespace
-Artifacts are stored in the `refs/notes/intent` namespace:
+When using Git Notes, artifacts are stored in the `refs/notes/intent` namespace:
 ```bash
 # View raw note for a commit
 git notes --ref=intent show <commit>
@@ -472,6 +477,13 @@ Notes are stored as UTF-8 encoded YAML, validated against the `CommitArtifact` s
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `GITSUMMARY_NOTES_REF` | Git Notes namespace | `refs/notes/intent` |
+| `GITSUMMARY_STORAGE_BACKEND` | Artifact storage backend (`notes` or `postgres`) | `notes` |
+| `GITSUMMARY_POSTGRES_DSN` | Postgres connection string (libpq DSN or URL) | unset |
+| `GITSUMMARY_PROJECT_ID` | Project id for Postgres storage | repo name |
+| `GITSUMMARY_PROJECT_SLUG` | Project slug for Postgres storage | repo name |
+| `GITSUMMARY_PROJECT_NAME` | Project display name for Postgres storage | repo name |
+| `GITSUMMARY_PROJECT_PROVIDER` | Project provider (e.g., `local`) | `local` |
+| `GITSUMMARY_PROJECT_URL` | Project URL for Postgres storage | `local://<repo>` |
 | `GITSUMMARY_NO_COLOR` | Disable colored output | unset |
 
 ---

@@ -31,4 +31,5 @@ Quick orientation for new users and contributors.
 - CLI design and rationale: `docs/cli_design.md`
 - Project overview: `docs/project_summary.md`
 - Future/roadmap: `docs/future_plans.md`
+- Install/update guide: `docs/install_update.md`
 - Examples: `examples/release-note-latest.md`

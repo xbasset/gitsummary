@@ -12,7 +12,7 @@ import typer
 from ...infrastructure import (
     GitCommandError,
     list_commits_in_range,
-    load_artifact_from_notes,
+    load_artifact,
     load_release_note,
     resolve_revision,
 )
@@ -23,6 +23,7 @@ from ..formatters import (
     format_artifact_json,
     format_artifact_yaml,
 )
+from ..storage import storage_option
 from ..ui import UXState, echo_status, spinner
 
 
@@ -37,6 +38,7 @@ def show(
     field: Optional[str] = typer.Option(
         None, "--field", help="Show only specific field(s)."
     ),
+    storage: str = storage_option(),
 ) -> None:
     """Display artifacts for commits."""
     try:
@@ -54,7 +56,7 @@ def show(
     missing = 0
 
     for commit in commits:
-        artifact = load_artifact_from_notes(commit.sha)
+        artifact = load_artifact(commit.sha, backend=storage)
 
         if artifact is None:
             if brief:

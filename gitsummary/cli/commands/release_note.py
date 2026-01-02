@@ -23,13 +23,14 @@ from ...infrastructure import (
     RELEASE_NOTE_NOTES_REF,
     repository_root,
     release_note_exists,
-    save_artifact_to_notes,
+    save_artifact,
     save_release_note,
 )
 from ...tracing import trace_manager
 from ...renderers import format_release_note_html, format_release_note_markdown
 from ...reports import ReleaseNote
 from ...services import AnalyzerService, ReporterService
+from ..storage import storage_option
 from ..ui import UXState, echo_status, spinner
 from ..commands.generate import _get_llm_provider
 
@@ -83,6 +84,7 @@ def release_note(
         "-m",
         help="LLM model to use for synthesis.",
     ),
+    storage: str = storage_option(),
 ) -> None:
     """Analyze commits for the latest tag and generate release notes."""
     if target != "latest":
@@ -183,7 +185,7 @@ def release_note(
         return
 
     commit_shas = [c.sha for c in commits]
-    artifacts = load_artifacts_for_range(commit_shas)
+    artifacts = load_artifacts_for_range(commit_shas, backend=storage)
 
     if reanalyze:
         analyzed_count = 0
@@ -219,7 +221,7 @@ def release_note(
             response=decision,
         )
         if decision:
-            _analyze_missing(missing_commits, artifacts, use_llm, provider)
+            _analyze_missing(missing_commits, artifacts, use_llm, provider, storage)
         else:
             typer.secho("Aborted before analysis.", err=True, fg=typer.colors.YELLOW)
             raise typer.Exit(code=1)
@@ -319,6 +321,7 @@ def _analyze_missing(
     artifacts,
     use_llm: bool,
     provider: Optional[str],
+    storage: str,
 ) -> None:
     typer.echo(f"Analyzing {len(commits)} missing commit(s)...")
     analyzer = AnalyzerService(use_llm=use_llm, provider_name=provider)
@@ -329,7 +332,7 @@ def _analyze_missing(
                 diff = get_commit_diff(commit.sha)
                 artifact = analyzer.analyze(commit, diff)
                 artifacts[commit.sha] = artifact
-                save_artifact_to_notes(artifact)
+                save_artifact(artifact, backend=storage)
             except Exception as exc:  # noqa: BLE001
                 errors += 1
                 typer.secho(

@@ -2,7 +2,7 @@
 
 This is the core command that analyzes commits using heuristics
 (and optionally LLM) to extract semantic information about each change.
-Results are stored in Git Notes (refs/notes/intent).
+Results are stored in the selected backend (default: Git Notes).
 """
 
 from __future__ import annotations
@@ -15,13 +15,14 @@ import typer
 from ...core import CommitArtifact
 from ...infrastructure import (
     GitCommandError,
-    artifact_exists_in_notes,
+    artifact_exists,
     get_commit_diff,
     list_commits_in_range,
-    save_artifact_to_notes,
+    save_artifact,
 )
 from ...services import AnalyzerService
 from ..formatters import format_artifact_json, format_artifact_yaml
+from ..storage import storage_option
 from ..ui import UXState, echo_status, spinner
 
 
@@ -31,7 +32,7 @@ def analyze(
         help="Git revision range (e.g., v1.0..v2.0) or single commit.",
     ),
     dry_run: bool = typer.Option(
-        False, "--dry-run", help="Print artifacts without storing in Git Notes."
+        False, "--dry-run", help="Print artifacts without storing."
     ),
     force: bool = typer.Option(
         False, "--force", "-f", help="Overwrite existing artifacts."
@@ -47,6 +48,7 @@ def analyze(
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Show detailed progress."
     ),
+    storage: str = storage_option(),
     # LLM options
     use_llm: bool = typer.Option(
         True,
@@ -72,7 +74,7 @@ def analyze(
 
     This is the core command that analyzes commits using heuristics (and
     optionally LLM) to extract semantic information about each change.
-    Results are stored in Git Notes (refs/notes/intent).
+    Results are stored in the selected backend (default: Git Notes).
 
     \b
     LLM Providers:
@@ -135,7 +137,7 @@ def analyze(
 
     for commit in commits:
         # Check if already analyzed
-        if not reanalyze and not force and artifact_exists_in_notes(commit.sha):
+        if not reanalyze and not force and artifact_exists(commit.sha, backend=storage):
             if not dry_run:
                 typer.echo(f"  ⊘ {commit.short_sha} (existing, skipped)")
             skipped += 1
@@ -156,8 +158,8 @@ def analyze(
                     typer.echo(format_artifact_yaml(artifact))
                     typer.echo("---")
             else:
-                # Store in Git Notes
-                save_artifact_to_notes(artifact, force=force)
+                # Store in backend
+                save_artifact(artifact, backend=storage, force=force)
                 typer.echo(f"  ✓ {commit.short_sha} {commit.summary[:50]}")
 
             analyzed += 1
@@ -182,7 +184,8 @@ def analyze(
             UXState.INFO,
         )
         if analyzed > 0:
-            echo_status("Artifacts stored in refs/notes/intent", UXState.SUCCESS)
+            location = "refs/notes/intent" if storage == "notes" else "postgres"
+            echo_status(f"Artifacts stored in {location}", UXState.SUCCESS)
 
     # Exit codes per CLI spec
     if errors > 0 and analyzed == 0:

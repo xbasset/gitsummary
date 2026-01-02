@@ -1,6 +1,7 @@
 typer>=0.9
 PyYAML>=6.0
 pydantic>=2.0
+psycopg[binary]>=3.1
 
 # LLM Provider Dependencies (optional)
 # Install the ones you need for your preferred provider

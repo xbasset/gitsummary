@@ -15,6 +15,7 @@ from ...infrastructure import (
     list_commits_in_range,
     load_artifacts_for_range,
 )
+from ..storage import storage_option
 from ..ui import UXState, echo_status, spinner
 
 
@@ -68,6 +69,7 @@ def list_commits(
     absolute_date: bool = typer.Option(
         False, "--date", help="Show absolute dates (YYYY-MM-DD HH:MM) instead of relative."
     ),
+    storage: str = storage_option(),
 ) -> None:
     """List commits and their analysis status."""
     try:
@@ -84,7 +86,7 @@ def list_commits(
     # Check analysis status for all commits
     shas = [c.sha for c in commits]
     with spinner("Loading artifacts", final_state=UXState.SUCCESS):
-        artifacts = load_artifacts_for_range(shas)
+        artifacts = load_artifacts_for_range(shas, backend=storage)
 
     analyzed_count = sum(1 for a in artifacts.values() if a is not None)
     missing_count = len(commits) - analyzed_count

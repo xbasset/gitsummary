@@ -34,6 +34,7 @@ from ...renderers import (
 from ...reports import ReleaseNote
 from ...services import ReporterService
 from ...tracing import trace_manager
+from ..storage import storage_option
 from ..ui import UXState, echo_status, spinner
 
 
@@ -51,6 +52,7 @@ def generate_changelog(
     include_unanalyzed: bool = typer.Option(
         False, "--include-unanalyzed", help="Include commits without artifacts."
     ),
+    storage: str = storage_option(),
 ) -> None:
     """Generate changelog from analyzed artifacts."""
     try:
@@ -67,7 +69,7 @@ def generate_changelog(
     # Load all artifacts
     shas = [c.sha for c in commits]
     with spinner("Loading artifacts", final_state=UXState.SUCCESS):
-        artifacts = load_artifacts_for_range(shas)
+        artifacts = load_artifacts_for_range(shas, backend=storage)
 
     # Generate report
     reporter = ReporterService()
@@ -141,6 +143,7 @@ def generate_feed(
         "--open",
         help="Open the generated feed in your default browser.",
     ),
+    storage: str = storage_option(),
 ) -> None:
     """Generate a scroll-friendly HTML feed of commits and artifacts."""
     try:
@@ -156,7 +159,7 @@ def generate_feed(
 
     shas = [c.sha for c in commits]
     with spinner("Loading artifacts", final_state=UXState.SUCCESS):
-        artifacts = load_artifacts_for_range(shas)
+        artifacts = load_artifacts_for_range(shas, backend=storage)
 
     try:
         project_name = Path(repository_root()).name
@@ -237,6 +240,7 @@ def generate_release_notes(
         "--store",
         help="Store the release note in Git Notes.",
     ),
+    storage: str = storage_option(),
 ) -> None:
     """Generate user-facing release notes from analyzed artifacts.
 
@@ -257,7 +261,7 @@ def generate_release_notes(
     # Load all artifacts
     shas = [c.sha for c in commits]
     with spinner("Loading artifacts", final_state=UXState.SUCCESS):
-        artifacts = load_artifacts_for_range(shas)
+        artifacts = load_artifacts_for_range(shas, backend=storage)
 
     analyzed_count = sum(1 for a in artifacts.values() if a is not None)
     if analyzed_count == 0:
@@ -384,6 +388,7 @@ def generate_impact(
     output_file: Optional[str] = typer.Option(
         None, "--output", "-o", help="Write to file instead of stdout."
     ),
+    storage: str = storage_option(),
 ) -> None:
     """Generate technical impact analysis for reviewers."""
     try:
@@ -400,7 +405,7 @@ def generate_impact(
     # Load all artifacts
     shas = [c.sha for c in commits]
     with spinner("Loading artifacts", final_state=UXState.SUCCESS):
-        artifacts = load_artifacts_for_range(shas)
+        artifacts = load_artifacts_for_range(shas, backend=storage)
 
     # Generate report
     reporter = ReporterService()

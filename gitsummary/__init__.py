@@ -1,7 +1,7 @@
 """High-level package for gitsummary.
 
 gitsummary summarizes git changes into durable semantic artifacts,
-stored in Git Notes for portability and longevity.
+stored in Git Notes by default (or Postgres when configured).
 
 Package Structure:
     core/           Domain models and schemas

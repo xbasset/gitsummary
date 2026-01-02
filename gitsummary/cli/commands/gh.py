@@ -126,7 +126,7 @@ def release_create(
     compute_missing: bool = typer.Option(
         True,
         "--compute-missing/--no-compute-missing",
-        help="Compute missing commit artifacts in-memory (never stored in Git Notes).",
+        help="Compute missing commit artifacts in-memory (never stored).",
     ),
     reanalyze_existing: bool = typer.Option(
         False,
@@ -196,5 +196,4 @@ def release_create(
             except OSError:
                 # Best-effort cleanup.
                 pass
-
 

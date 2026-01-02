@@ -1,8 +1,8 @@
 """CI-focused commands.
 
 These commands are designed for automation environments (GitHub Actions, CI)
-where we want to benefit from existing Git Notes artifacts without creating
-new Git Notes entries or modifying the repository history.
+where we want to benefit from existing artifacts without creating
+new storage entries or modifying the repository history.
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ from ...infrastructure import (
 from ...renderers import format_release_note_markdown, format_release_note_text
 from ...services import AnalyzerService, ReporterService
 from ...tracing import trace_manager
+from ..storage import storage_option
 from ..ui import UXState, echo_status, spinner
 from .generate import _get_llm_provider
 
@@ -50,12 +51,12 @@ def release_notes(
     compute_missing: bool = typer.Option(
         True,
         "--compute-missing/--no-compute-missing",
-        help="Compute missing commit artifacts in-memory (never stored in Git Notes).",
+        help="Compute missing commit artifacts in-memory (never stored).",
     ),
     reanalyze_existing: bool = typer.Option(
         False,
         "--reanalyze-existing",
-        help="Recompute artifacts even if they already exist in Git Notes (in-memory only).",
+        help="Recompute artifacts even if they already exist (in-memory only).",
     ),
     use_llm: bool = typer.Option(
         True,
@@ -87,11 +88,12 @@ def release_notes(
         "-v",
         help="Version for the header (default: extracted from range end).",
     ),
+    storage: str = storage_option(),
 ) -> None:
-    """Generate release notes for CI without writing Git Notes.
+    """Generate release notes for CI without writing artifacts.
 
     This command:
-    - reads existing artifacts from Git Notes if present locally (read-only)
+    - reads existing artifacts from the selected backend (read-only)
     - optionally computes missing artifacts in-memory (no `git notes add`)
     - synthesizes release notes and writes markdown/text output
     """
@@ -115,6 +117,8 @@ def release_notes(
         product_name = None
     if isinstance(version, OptionInfo):
         version = None
+    if isinstance(storage, OptionInfo):
+        storage = "notes"
 
     # Mirror `analyze` behavior: allow per-provider model override via env.
     if model:
@@ -135,10 +139,14 @@ def release_notes(
         raise typer.Exit(code=1)
 
     shas = [c.sha for c in commits]
+    backend_label = "Git Notes" if storage == "notes" else "Postgres"
     with spinner(
-        "Loading artifacts from Git Notes (read-only)", final_state=UXState.SUCCESS
+        f"Loading artifacts from {backend_label} (read-only)",
+        final_state=UXState.SUCCESS,
     ):
-        artifacts: Dict[str, Optional[CommitArtifact]] = load_artifacts_for_range(shas)
+        artifacts: Dict[str, Optional[CommitArtifact]] = load_artifacts_for_range(
+            shas, backend=storage
+        )
 
     if reanalyze_existing:
         missing_commits = commits
@@ -147,7 +155,7 @@ def release_notes(
 
     if missing_commits and compute_missing:
         echo_status(
-            f"Computing {len(missing_commits)} missing artifact(s) in-memory (no Git Notes writes)",
+            f"Computing {len(missing_commits)} missing artifact(s) in-memory (no storage writes)",
             UXState.INFO,
         )
         analyzer = AnalyzerService(use_llm=use_llm, provider_name=provider_name)
@@ -174,7 +182,7 @@ def release_notes(
     analyzed_count = sum(1 for a in artifacts.values() if a is not None)
     if analyzed_count == 0:
         typer.secho(
-            "No analyzed commits available. Push/fetch refs/notes/intent or enable --compute-missing.",
+            "No analyzed commits available. Ensure artifacts exist in the selected backend or enable --compute-missing.",
             err=True,
             fg=typer.colors.YELLOW,
         )
