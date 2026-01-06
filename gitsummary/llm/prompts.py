@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from .prompts_commit import (
     COMMIT_ANALYSIS_SYSTEM_PROMPT,
+    COMMIT_ANALYSIS_PROMPT_VERSION,
     build_batch_analysis_prompt,
     build_commit_analysis_prompt,
 )
@@ -19,11 +20,11 @@ from .prompts_release_note import (
 
 __all__ = [
     "COMMIT_ANALYSIS_SYSTEM_PROMPT",
+    "COMMIT_ANALYSIS_PROMPT_VERSION",
     "build_commit_analysis_prompt",
     "build_batch_analysis_prompt",
     "RELEASE_NOTE_SYSTEM_PROMPT",
     "build_release_note_synthesis_prompt",
     "format_artifacts_for_synthesis",
 ]
-
 

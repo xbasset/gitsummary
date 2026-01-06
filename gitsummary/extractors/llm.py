@@ -139,7 +139,10 @@ class LLMExtractor:
                 return self._extract_with_provider(llm_provider, commit, diff_patch)
             except Exception as e:
                 logger.warning(f"LLM extraction failed: {e}")
-                return ExtractionResult()
+                return ExtractionResult(
+                    llm_provider=getattr(llm_provider, "name", None),
+                    llm_fallback_reason="llm_error",
+                )
 
         # Fall back to legacy provider
         legacy_provider = self._legacy_provider or get_llm_provider()
@@ -158,8 +161,13 @@ class LLMExtractor:
         diff_patch: str,
     ) -> ExtractionResult:
         """Extract using the new provider architecture with structured outputs."""
-        from ..llm.prompts import COMMIT_ANALYSIS_SYSTEM_PROMPT, build_commit_analysis_prompt
+        from ..llm.prompts import (
+            COMMIT_ANALYSIS_PROMPT_VERSION,
+            COMMIT_ANALYSIS_SYSTEM_PROMPT,
+            build_commit_analysis_prompt,
+        )
         from ..llm.schemas import CommitExtractionSchema
+        from ..core.artifact import QualitativeScores, TokenUsage
 
         # Build prompt
         prompt = build_commit_analysis_prompt(commit, diff_patch)
@@ -214,13 +222,60 @@ class LLMExtractor:
                 duration_seconds=duration,
             )
 
+        provider_name = getattr(provider, "name", None)
+        if response is None:
+            return ExtractionResult(
+                llm_provider=provider_name,
+                llm_prompt_version=COMMIT_ANALYSIS_PROMPT_VERSION,
+                llm_fallback_reason="llm_no_response",
+            )
+        token_usage_obj = None
+        if response is not None:
+            token_usage_obj = TokenUsage(
+                input=response.prompt_tokens or None,
+                output=response.completion_tokens or None,
+                cached=None,
+            )
+
         if not response.success or response.parsed is None:
-            if response.refusal:
+            fallback_reason = "llm_no_response"
+            if response and response.refusal:
+                fallback_reason = "llm_refused"
                 logger.warning(f"LLM refused to analyze commit: {response.refusal}")
-            return ExtractionResult()
+            return ExtractionResult(
+                llm_provider=provider_name,
+                llm_model=response.model if response else None,
+                llm_prompt_version=COMMIT_ANALYSIS_PROMPT_VERSION,
+                llm_token_usage=token_usage_obj,
+                llm_duration_ms=int(duration * 1000),
+                llm_fallback_reason=fallback_reason,
+            )
 
         # Convert to ExtractionResult
-        return self._parse_llm_result(response.parsed)
+        result = self._parse_llm_result(response.parsed)
+        qualitative_raw = None
+        if hasattr(response.parsed, "qualitative"):
+            qualitative_raw = getattr(response.parsed, "qualitative")
+        else:
+            parsed_payload = (
+                response.parsed.model_dump()  # type: ignore[attr-defined]
+                if hasattr(response.parsed, "model_dump")
+                else response.parsed
+            )
+            if isinstance(parsed_payload, dict):
+                qualitative_raw = parsed_payload.get("qualitative")
+        if qualitative_raw is not None:
+            try:
+                result.qualitative = QualitativeScores.model_validate(qualitative_raw)
+            except Exception:
+                result.qualitative = None
+
+        result.llm_provider = provider_name
+        result.llm_model = response.model
+        result.llm_prompt_version = COMMIT_ANALYSIS_PROMPT_VERSION
+        result.llm_token_usage = token_usage_obj
+        result.llm_duration_ms = int(duration * 1000)
+        return result
 
     def _parse_llm_result(self, result: Dict[str, object]) -> ExtractionResult:
         """Parse LLM provider result into ExtractionResult."""
@@ -238,7 +293,7 @@ class LLMExtractor:
             except ValueError:
                 pass
 
-        return ExtractionResult(
+        result_obj = ExtractionResult(
             intent_summary=result.get("intent_summary"),  # type: ignore
             category=category,
             behavior_before=result.get("behavior_before"),  # type: ignore
@@ -247,6 +302,16 @@ class LLMExtractor:
             is_breaking=result.get("is_breaking"),  # type: ignore
             technical_highlights=result.get("technical_highlights", []),  # type: ignore
         )
+        if "qualitative" in result:
+            try:
+                from ..core.artifact import QualitativeScores
+
+                result_obj.qualitative = QualitativeScores.model_validate(
+                    result.get("qualitative")
+                )
+            except Exception:
+                result_obj.qualitative = None
+        return result_obj
 
 
 def create_openai_provider_function(

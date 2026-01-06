@@ -17,7 +17,7 @@ from ..core import CommitArtifact
 from .notes import NOTES_REF, notes_exists, notes_read, notes_write, notes_remove
 from ..tracing import trace_manager
 
-SCHEMA_VERSION = "0.1.0"
+SCHEMA_VERSION = "0.2.0"
 STORAGE_BACKEND_ENV = "GITSUMMARY_STORAGE_BACKEND"
 DEFAULT_STORAGE_BACKEND = "notes"
 STORAGE_BACKENDS = {"notes", "postgres"}

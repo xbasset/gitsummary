@@ -7,11 +7,20 @@ from commits, combining multiple extractors with fallback logic.
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from typing import Optional
 
-from ..core import ChangeCategory, CommitArtifact, CommitDiff, CommitInfo, ImpactScope
+from ..core import (
+    ChangeCategory,
+    CommitArtifact,
+    CommitDiff,
+    CommitInfo,
+    ImpactScope,
+)
+from ..core.artifact import AnalysisMeta
 from ..extractors import HeuristicExtractor, LLMExtractor
 from ..infrastructure import diff_patch_for_commit
+from .analysis_metrics import build_input_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -108,10 +117,25 @@ class AnalyzerService:
         heuristic_result = self._heuristic_extractor.extract(commit, diff, diff_patch)
 
         # Merge results (LLM takes precedence where available)
-        if llm_result and llm_result.intent_summary:
+        if llm_result and llm_result.has_semantic_data():
             merged = llm_result.merge_with(heuristic_result)
         else:
             merged = heuristic_result
+
+        llm_success = llm_result is not None and llm_result.has_semantic_data()
+        analysis_mode = "hybrid" if llm_success else "heuristic"
+        analysis_meta = AnalysisMeta(
+            analysis_mode=analysis_mode,
+            provider=llm_result.llm_provider if llm_result else None,
+            model=llm_result.llm_model if llm_result else None,
+            prompt_version=llm_result.llm_prompt_version if llm_result else None,
+            analysis_timestamp=datetime.now(timezone.utc).isoformat(),
+            analysis_duration_ms=llm_result.llm_duration_ms if llm_result else None,
+            fallback_reason=llm_result.llm_fallback_reason if llm_result else None,
+            token_usage=llm_result.llm_token_usage if llm_result else None,
+            input_metrics=build_input_metrics(commit, diff, diff_patch),
+            qualitative=llm_result.qualitative if llm_result else None,
+        )
 
         # Build the artifact
         return CommitArtifact(
@@ -123,6 +147,7 @@ class AnalyzerService:
             impact_scope=merged.impact_scope or ImpactScope.INTERNAL,
             is_breaking=merged.is_breaking or False,
             technical_highlights=merged.technical_highlights,
+            analysis_meta=analysis_meta,
         )
 
 

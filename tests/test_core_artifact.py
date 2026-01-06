@@ -56,7 +56,7 @@ class TestCommitArtifact:
             category=ChangeCategory.CHORE,
             impact_scope=ImpactScope.INTERNAL,
         )
-        assert artifact.schema_version == "0.1.0"
+        assert artifact.schema_version == "0.2.0"
 
     def test_model_dump_json(self, feature_artifact: CommitArtifact) -> None:
         """Test JSON serialization via model_dump_json."""
@@ -146,4 +146,3 @@ class TestCommitArtifact:
         )
         assert artifact.behavior_before is None
         assert artifact.behavior_after == "Now it works"
-

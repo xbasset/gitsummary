@@ -470,6 +470,15 @@ git fetch origin refs/notes/intent:refs/notes/intent
 ### Data Format
 Notes are stored as UTF-8 encoded YAML, validated against the `CommitArtifact` schema defined in `gitsummary/schema.py`.
 
+### Analysis Metadata (new)
+Commit artifacts now include `analysis_meta` with:
+- provenance (provider/model/prompt version)
+- input sizing (diff and message stats)
+- token usage
+- qualitative scores (difficulty, creativity, mental load, review effort, ambiguity)
+
+This data helps with cost tracking, review prioritization, and release comparisons.
+
 ---
 
 ## Environment Variables

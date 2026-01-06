@@ -13,6 +13,8 @@ Date: 2025-11-26
 The content of the note is a UTF-8 encoded **YAML** string.
 **Validation:** The YAML content must strictly conform to the `CommitArtifact` Pydantic model defined in `gitsummary/schema.py`. This ensures type safety and schema validation despite the storage format being YAML.
 
+The schema now includes `analysis_meta` for provenance, input metrics, token usage, and qualitative scores.
+
 ### Example Note Content
 ```yaml
 commit_hash: a1b2c3d4...

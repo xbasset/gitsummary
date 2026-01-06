@@ -7,6 +7,31 @@ from typing import List, Literal, Optional
 from pydantic import BaseModel, Field
 
 
+class QualitativeSignalSchema(BaseModel):
+    """Schema for a qualitative score with explanation."""
+
+    score: Optional[int] = Field(
+        None,
+        ge=0,
+        le=10,
+        description="Score on a 0-10 scale.",
+    )
+    explanation: Optional[str] = Field(
+        None,
+        description="Short rationale for the score.",
+    )
+
+
+class QualitativeScoresSchema(BaseModel):
+    """Qualitative assessment for a commit."""
+
+    technical_difficulty: Optional[QualitativeSignalSchema] = None
+    creativity: Optional[QualitativeSignalSchema] = None
+    mental_load: Optional[QualitativeSignalSchema] = None
+    review_effort: Optional[QualitativeSignalSchema] = None
+    ambiguity: Optional[QualitativeSignalSchema] = None
+
+
 class CommitExtractionSchema(BaseModel):
     """Schema for extracting semantic information from a commit."""
 
@@ -62,6 +87,11 @@ class CommitExtractionSchema(BaseModel):
     technical_highlights: List[str] = Field(
         default_factory=list,
         description="Key technical decisions or interesting implementation details.",
+    )
+
+    qualitative: Optional[QualitativeScoresSchema] = Field(
+        None,
+        description="Qualitative assessment scores with explanations.",
     )
 
 

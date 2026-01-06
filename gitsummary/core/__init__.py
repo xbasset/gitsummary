@@ -11,7 +11,14 @@ Modules:
 
 from __future__ import annotations
 
-from .artifact import CommitArtifact
+from .artifact import (
+    AnalysisMeta,
+    CommitArtifact,
+    InputMetrics,
+    QualitativeScores,
+    QualitativeSignal,
+    TokenUsage,
+)
 from .enums import ChangeCategory, ImpactScope
 from .models import (
     CommitDiff,
@@ -36,4 +43,9 @@ __all__ = [
     "ImpactScope",
     # Commit Artifact
     "CommitArtifact",
+    "AnalysisMeta",
+    "InputMetrics",
+    "TokenUsage",
+    "QualitativeSignal",
+    "QualitativeScores",
 ]

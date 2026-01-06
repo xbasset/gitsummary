@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Protocol
 
 from ..core import ChangeCategory, CommitDiff, CommitInfo, ImpactScope
+from ..core.artifact import QualitativeScores, TokenUsage
 
 
 @dataclass
@@ -27,6 +28,28 @@ class ExtractionResult:
     impact_scope: Optional[ImpactScope] = None
     is_breaking: Optional[bool] = None
     technical_highlights: List[str] = field(default_factory=list)
+    qualitative: Optional[QualitativeScores] = None
+    llm_provider: Optional[str] = None
+    llm_model: Optional[str] = None
+    llm_prompt_version: Optional[str] = None
+    llm_token_usage: Optional[TokenUsage] = None
+    llm_duration_ms: Optional[int] = None
+    llm_fallback_reason: Optional[str] = None
+
+    def has_semantic_data(self) -> bool:
+        """Return True if any semantic fields are populated."""
+        return any(
+            [
+                self.intent_summary,
+                self.category,
+                self.behavior_before,
+                self.behavior_after,
+                self.impact_scope,
+                self.is_breaking is not None,
+                bool(self.technical_highlights),
+                self.qualitative is not None,
+            ]
+        )
 
     def merge_with(self, fallback: "ExtractionResult") -> "ExtractionResult":
         """Merge with a fallback result, using fallback for missing fields.
@@ -45,6 +68,13 @@ class ExtractionResult:
             technical_highlights=(
                 self.technical_highlights or fallback.technical_highlights
             ),
+            qualitative=self.qualitative or fallback.qualitative,
+            llm_provider=self.llm_provider or fallback.llm_provider,
+            llm_model=self.llm_model or fallback.llm_model,
+            llm_prompt_version=self.llm_prompt_version or fallback.llm_prompt_version,
+            llm_token_usage=self.llm_token_usage or fallback.llm_token_usage,
+            llm_duration_ms=self.llm_duration_ms or fallback.llm_duration_ms,
+            llm_fallback_reason=self.llm_fallback_reason or fallback.llm_fallback_reason,
         )
 
 
@@ -72,4 +102,3 @@ class Extractor(Protocol):
             ExtractionResult with populated fields.
         """
         ...
-

@@ -6,6 +6,8 @@ Release notes in one line: `gitsummary release-note latest` builds and displays 
 - Understand *why* code changed and *who* it affects, not just which lines moved.
 - Store semantic artifacts in Git Notes (default) or Postgres for shared storage.
 - Generate release notes, changelogs, and impact summaries on demand.
+- New: capture analysis metadata (tokens, diff size, qualitative scores) to
+  prioritize review, understand LLM cost, and compare changes over time.
 
 ## Quickstart
 ```bash
@@ -29,6 +31,7 @@ gitsummary release-note latest --no-llm
 - Changelog: `gitsummary generate changelog <range> [--format json]`
 - Show stored artifacts/notes: `gitsummary show <commit>` / `gitsummary show release-note <rev>`
 - List commit analysis status: `gitsummary list <range> [--missing]`
+  - `gitsummary show <commit>` now includes analysis metadata (tokens, diff size, qualitative scores).
 
 ## Docs
 - Start here: `docs/index.md` (orientation, commands, architecture map)

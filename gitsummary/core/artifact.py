@@ -11,11 +11,67 @@ improve human readability.
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
 from .enums import ChangeCategory, ImpactScope
+
+
+class TokenUsage(BaseModel):
+    """Token usage information for an LLM call."""
+
+    input: Optional[int] = Field(None, description="Input tokens used.")
+    output: Optional[int] = Field(None, description="Output tokens used.")
+    cached: Optional[int] = Field(None, description="Cached tokens used, if available.")
+
+
+class InputMetrics(BaseModel):
+    """Size and scope metrics for the analyzed input."""
+
+    commit_message_chars: Optional[int] = Field(None)
+    commit_message_lines: Optional[int] = Field(None)
+    commit_message_tokens: Optional[int] = Field(None)
+    diff_files: Optional[int] = Field(None)
+    diff_insertions: Optional[int] = Field(None)
+    diff_deletions: Optional[int] = Field(None)
+    diff_total: Optional[int] = Field(None)
+    diff_hunks: Optional[int] = Field(None)
+    diff_chars: Optional[int] = Field(None)
+    diff_lines: Optional[int] = Field(None)
+    diff_tokens: Optional[int] = Field(None)
+
+
+class QualitativeSignal(BaseModel):
+    """A qualitative score with an explanation."""
+
+    score: Optional[int] = Field(None, ge=0, le=10)
+    explanation: Optional[str] = Field(None)
+
+
+class QualitativeScores(BaseModel):
+    """Qualitative assessment of a commit."""
+
+    technical_difficulty: Optional[QualitativeSignal] = None
+    creativity: Optional[QualitativeSignal] = None
+    mental_load: Optional[QualitativeSignal] = None
+    review_effort: Optional[QualitativeSignal] = None
+    ambiguity: Optional[QualitativeSignal] = None
+
+
+class AnalysisMeta(BaseModel):
+    """Metadata about how the artifact was produced."""
+
+    analysis_mode: Optional[Literal["llm", "heuristic", "hybrid"]] = None
+    provider: Optional[str] = None
+    model: Optional[str] = None
+    prompt_version: Optional[str] = None
+    analysis_timestamp: Optional[str] = None
+    analysis_duration_ms: Optional[int] = None
+    fallback_reason: Optional[str] = None
+    token_usage: Optional[TokenUsage] = None
+    input_metrics: Optional[InputMetrics] = None
+    qualitative: Optional[QualitativeScores] = None
 
 
 class CommitArtifact(BaseModel):
@@ -44,7 +100,7 @@ class CommitArtifact(BaseModel):
         description="The full SHA-1 hash of the commit.",
     )
     schema_version: str = Field(
-        "0.1.0",
+        "0.2.0",
         description="The version of this artifact schema.",
     )
 
@@ -113,3 +169,8 @@ class CommitArtifact(BaseModel):
         ),
     )
 
+    # --- Analysis Metadata ---
+    analysis_meta: Optional[AnalysisMeta] = Field(
+        None,
+        description="Metadata about analysis provenance, inputs, and qualitative scores.",
+    )

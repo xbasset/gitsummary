@@ -15,6 +15,10 @@ setup(
     description="Summarise git changes into durable artifacts",
     packages=find_packages(),
     python_requires=">=3.10",
+    package_data={
+        "gitsummary": ["llm/prompt_assets/commit_artifact_v2/*.md"],
+    },
+    include_package_data=True,
     install_requires=[
         "typer>=0.9",
         "PyYAML>=6.0",

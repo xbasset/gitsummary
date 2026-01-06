@@ -131,7 +131,7 @@ class TestYamlToArtifact:
         
         # The artifact should have its own schema_version field
         # but the metadata fields from storage are removed
-        assert restored.schema_version == "0.1.0"  # artifact's own field
+        assert restored.schema_version == "0.2.0"  # artifact's own field
 
     def test_optional_fields_restored_as_none(self) -> None:
         """Test that None values are properly restored."""

@@ -179,7 +179,19 @@ class TestArtifactFields:
         ):
             artifact = build_commit_artifact(simple_commit, use_llm=False)
         
-        assert artifact.schema_version == "0.1.0"
+        assert artifact.schema_version == "0.2.0"
+
+    def test_analysis_meta_populated(self, simple_commit: CommitInfo) -> None:
+        """Test that analysis_meta is populated for heuristic analysis."""
+        with patch(
+            "gitsummary.services.analyzer.diff_patch_for_commit", return_value=""
+        ):
+            artifact = build_commit_artifact(simple_commit, use_llm=False)
+
+        assert artifact.analysis_meta is not None
+        assert artifact.analysis_meta.analysis_mode == "heuristic"
+        assert artifact.analysis_meta.input_metrics is not None
+        assert artifact.analysis_meta.input_metrics.commit_message_chars is not None
 
 
 class TestLLMIntegration:

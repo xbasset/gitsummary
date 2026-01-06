@@ -368,6 +368,62 @@ git push origin refs/notes/intent
 
 ---
 
+## New: Analysis Metadata
+
+Each artifact now includes `analysis_meta`, which captures:
+- LLM provenance (provider/model/prompt version)
+- token usage (input/output/cached if available)
+- input sizing (commit message and diff stats)
+- qualitative scores (difficulty, creativity, mental load, review effort, ambiguity)
+
+**View it:**
+```bash
+gitsummary show <commit>
+gitsummary show <commit> --json
+```
+
+**Example (`analysis_meta` excerpt):**
+```yaml
+analysis_meta:
+  analysis_mode: hybrid
+  provider: openai
+  model: gpt-5.2-2025-12-11
+  prompt_version: commit_artifact_v2.0
+  analysis_timestamp: "2026-01-02T10:03:34Z"
+  analysis_duration_ms: 842
+  token_usage:
+    input: 1320
+    output: 286
+  input_metrics:
+    commit_message_chars: 184
+    commit_message_lines: 6
+    commit_message_tokens: 33
+    diff_files: 4
+    diff_insertions: 88
+    diff_deletions: 12
+    diff_total: 100
+    diff_hunks: 7
+    diff_chars: 2410
+    diff_lines: 210
+    diff_tokens: 453
+  qualitative:
+    technical_difficulty:
+      score: 4
+      explanation: Moderate surface‑area change, limited algorithmic complexity.
+    creativity:
+      score: 2
+      explanation: Mostly conventional integration work.
+    mental_load:
+      score: 5
+      explanation: Touches multiple modules with subtle flow changes.
+    review_effort:
+      score: 5
+      explanation: Multi‑file diff with behavior changes worth careful review.
+    ambiguity:
+      score: 1
+      explanation: Intent is clear from diff and message.
+```
+
 ## Troubleshooting
 
 ### "No commits found in the specified range"

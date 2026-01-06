@@ -15,6 +15,16 @@ Quick orientation for new users and contributors.
 - `gitsummary generate changelog <range>` — produce changelog from stored artifacts.
 - `gitsummary show <commit>` / `show release-note <rev>` — inspect stored outputs.
 
+## Why the new analysis metadata?
+We now attach analysis metadata to each commit artifact to:
+- track LLM usage (tokens) and estimate cost
+- quantify change size (diff stats, message size)
+- surface qualitative scores to help review prioritization
+
+## How to use it (CLI)
+- Human view: `gitsummary show <commit>` (shows analysis metadata block)
+- Raw: `gitsummary show <commit> --json` or `--yaml` for full `analysis_meta`
+
 ## Architecture at a Glance
 - CLI (`gitsummary/cli`): Typer app wiring commands.
 - Services (`gitsummary/services`): Analyzer and Reporter orchestrations.
