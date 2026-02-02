@@ -75,10 +75,19 @@ When `--storage postgres` (or `GITSUMMARY_STORAGE_BACKEND=postgres`) is set, art
 - `schema_version` (text)
 - `generated_at` (timestamptz)
 - `summary` (text, CommitArtifact intent summary)
+- `description` (text, human-friendly description; defaults to intent summary)
 - `tags` (text[])
 - `signals` (jsonb)
 - `commit` (jsonb, optional)
 - `raw_artifact` (jsonb, CommitArtifact payload + metadata)
+- `category` (text, CommitArtifact category)
+- `impact_scope` (text, CommitArtifact impact scope)
+- `is_breaking` (boolean, CommitArtifact breaking change flag)
+- `behavior_before` (text, CommitArtifact behavior before)
+- `behavior_after` (text, CommitArtifact behavior after)
+- `technical_highlights` (text[], CommitArtifact technical highlights)
+- `analysis_meta` (jsonb, CommitArtifact analysis metadata)
+- `tool_version` (text, gitsummary version that generated the artifact)
 
 ### Connection
 Set `GITSUMMARY_POSTGRES_DSN` to a libpq DSN or URL (e.g., `postgresql://user:pass@host:5432/gitsummary`).

@@ -71,14 +71,37 @@ def _ensure_schema(conn: psycopg.Connection) -> None:
             schema_version text NOT NULL,
             generated_at timestamptz NOT NULL,
             summary text NOT NULL,
+            description text,
             why_it_matters text,
             tags text[] NOT NULL DEFAULT '{{}}'::text[],
             signals jsonb NOT NULL DEFAULT '[]'::jsonb,
             commit jsonb,
             raw_artifact jsonb NOT NULL,
+            category text,
+            impact_scope text,
+            is_breaking boolean,
+            behavior_before text,
+            behavior_after text,
+            technical_highlights text[],
+            analysis_meta jsonb,
+            tool_version text,
             created_at timestamptz NOT NULL DEFAULT now(),
             UNIQUE (project_id, content_type, source_ref)
         )
+        """
+    )
+    conn.execute(
+        f"""
+        ALTER TABLE {POSTGRES_TABLE}
+            ADD COLUMN IF NOT EXISTS description text,
+            ADD COLUMN IF NOT EXISTS category text,
+            ADD COLUMN IF NOT EXISTS impact_scope text,
+            ADD COLUMN IF NOT EXISTS is_breaking boolean,
+            ADD COLUMN IF NOT EXISTS behavior_before text,
+            ADD COLUMN IF NOT EXISTS behavior_after text,
+            ADD COLUMN IF NOT EXISTS technical_highlights text[],
+            ADD COLUMN IF NOT EXISTS analysis_meta jsonb,
+            ADD COLUMN IF NOT EXISTS tool_version text
         """
     )
 
@@ -205,6 +228,8 @@ def save_artifact_to_postgres(
     tags: List[str] = [artifact.category.value, artifact.impact_scope.value]
     if artifact.is_breaking:
         tags.append("breaking")
+    analysis_meta = payload.get("analysis_meta")
+    tool_version = payload.get("tool_version")
     project = None
     with _connect() as conn:
         _ensure_schema(conn)
@@ -231,23 +256,41 @@ def save_artifact_to_postgres(
                 schema_version,
                 generated_at,
                 summary,
+                description,
                 why_it_matters,
                 tags,
                 signals,
                 commit,
-                raw_artifact
+                raw_artifact,
+                category,
+                impact_scope,
+                is_breaking,
+                behavior_before,
+                behavior_after,
+                technical_highlights,
+                analysis_meta,
+                tool_version
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (project_id, content_type, source_ref)
             DO UPDATE SET
                 schema_version = EXCLUDED.schema_version,
                 generated_at = EXCLUDED.generated_at,
                 summary = EXCLUDED.summary,
+                description = EXCLUDED.description,
                 why_it_matters = EXCLUDED.why_it_matters,
                 tags = EXCLUDED.tags,
                 signals = EXCLUDED.signals,
                 commit = EXCLUDED.commit,
-                raw_artifact = EXCLUDED.raw_artifact
+                raw_artifact = EXCLUDED.raw_artifact,
+                category = EXCLUDED.category,
+                impact_scope = EXCLUDED.impact_scope,
+                is_breaking = EXCLUDED.is_breaking,
+                behavior_before = EXCLUDED.behavior_before,
+                behavior_after = EXCLUDED.behavior_after,
+                technical_highlights = EXCLUDED.technical_highlights,
+                analysis_meta = EXCLUDED.analysis_meta,
+                tool_version = EXCLUDED.tool_version
             """,
             (
                 artifact_id,
@@ -262,6 +305,15 @@ def save_artifact_to_postgres(
                 Json([]),
                 Json({"sha": sha}),
                 Json(payload),
+                artifact.intent_summary,
+                artifact.category.value,
+                artifact.impact_scope.value,
+                artifact.is_breaking,
+                artifact.behavior_before,
+                artifact.behavior_after,
+                artifact.technical_highlights,
+                Json(analysis_meta) if analysis_meta else None,
+                tool_version,
             ),
         )
     trace_manager.log_output_reference(
