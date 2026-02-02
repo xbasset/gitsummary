@@ -38,7 +38,7 @@ __all__ = [
     "ReporterService",
 ]
 
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 
 # CLI app
 from .cli import app
