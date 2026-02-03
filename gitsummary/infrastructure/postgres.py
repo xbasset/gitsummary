@@ -8,10 +8,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
-import psycopg
-from psycopg.rows import dict_row
-from psycopg.types.json import Json
-
 from .. import __version__
 from ..core import CommitArtifact
 from .git import GitCommandError, repository_root
@@ -44,8 +40,23 @@ def _get_dsn() -> str:
 
 
 def _connect() -> psycopg.Connection:
+    try:
+        import psycopg
+        from psycopg.rows import dict_row
+    except ModuleNotFoundError as exc:
+        raise ModuleNotFoundError(
+            "psycopg is required for Postgres storage. Install with: pip install 'psycopg[binary]'."
+        ) from exc
     return psycopg.connect(_get_dsn(), row_factory=dict_row)
 
+
+def _json(value: object) -> object:
+    """Wrap JSON values for psycopg when available (tests may run without psycopg installed)."""
+    try:
+        from psycopg.types.json import Json
+    except ModuleNotFoundError:
+        return value
+    return Json(value)
 
 def _ensure_schema(conn: psycopg.Connection) -> None:
     conn.execute(
@@ -75,21 +86,22 @@ def _ensure_schema(conn: psycopg.Connection) -> None:
             why_it_matters text,
             tags text[] NOT NULL DEFAULT '{{}}'::text[],
             signals jsonb NOT NULL DEFAULT '[]'::jsonb,
-            commit jsonb,
-            raw_artifact jsonb NOT NULL,
             category text,
             impact_scope text,
-            is_breaking boolean,
+            is_breaking boolean NOT NULL DEFAULT false,
             behavior_before text,
             behavior_after text,
-            technical_highlights text[],
+            technical_highlights text[] NOT NULL DEFAULT '{{}}'::text[],
             analysis_meta jsonb,
             tool_version text,
+            commit jsonb,
             created_at timestamptz NOT NULL DEFAULT now(),
             UNIQUE (project_id, content_type, source_ref)
         )
         """
     )
+    conn.execute(f"CREATE INDEX IF NOT EXISTS artifacts_project_idx ON {POSTGRES_TABLE}(project_id)")
+    conn.execute(f"CREATE INDEX IF NOT EXISTS artifacts_generated_idx ON {POSTGRES_TABLE}(generated_at DESC)")
     conn.execute(
         f"""
         ALTER TABLE {POSTGRES_TABLE}
@@ -206,16 +218,22 @@ def _resolve_project(conn: psycopg.Connection) -> ProjectInfo:
     return info
 
 
-def _artifact_to_record(artifact: CommitArtifact) -> Dict[str, object]:
-    data = artifact.model_dump(mode="json")
-    data["tool_version"] = __version__
-    return data
-
-
-def _record_to_artifact(data: Dict[str, object]) -> CommitArtifact:
-    data.pop("schema_version", None)
-    data.pop("tool_version", None)
-    return CommitArtifact(**data)
+def _row_to_artifact(row: Dict[str, object]) -> CommitArtifact:
+    intent_summary = row.get("description") or row.get("summary") or ""
+    technical_highlights = row.get("technical_highlights") or []
+    is_breaking = row.get("is_breaking")
+    return CommitArtifact(
+        commit_hash=str(row["source_ref"]),
+        schema_version=str(row.get("schema_version") or CommitArtifact.model_fields["schema_version"].default),
+        intent_summary=str(intent_summary),
+        category=row["category"],
+        impact_scope=row["impact_scope"],
+        is_breaking=bool(is_breaking) if is_breaking is not None else False,
+        behavior_before=row.get("behavior_before"),
+        behavior_after=row.get("behavior_after"),
+        technical_highlights=list(technical_highlights),
+        analysis_meta=row.get("analysis_meta"),
+    )
 
 
 def save_artifact_to_postgres(
@@ -224,12 +242,11 @@ def save_artifact_to_postgres(
     force: bool = True,
 ) -> str:
     sha = artifact.commit_hash
-    payload = _artifact_to_record(artifact)
     tags: List[str] = [artifact.category.value, artifact.impact_scope.value]
     if artifact.is_breaking:
         tags.append("breaking")
-    analysis_meta = payload.get("analysis_meta")
-    tool_version = payload.get("tool_version")
+    analysis_meta = artifact.analysis_meta.model_dump(mode="json") if artifact.analysis_meta else None
+    tool_version = __version__
     project = None
     with _connect() as conn:
         _ensure_schema(conn)
@@ -261,7 +278,6 @@ def save_artifact_to_postgres(
                 tags,
                 signals,
                 commit,
-                raw_artifact,
                 category,
                 impact_scope,
                 is_breaking,
@@ -271,7 +287,7 @@ def save_artifact_to_postgres(
                 analysis_meta,
                 tool_version
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (project_id, content_type, source_ref)
             DO UPDATE SET
                 schema_version = EXCLUDED.schema_version,
@@ -282,7 +298,6 @@ def save_artifact_to_postgres(
                 tags = EXCLUDED.tags,
                 signals = EXCLUDED.signals,
                 commit = EXCLUDED.commit,
-                raw_artifact = EXCLUDED.raw_artifact,
                 category = EXCLUDED.category,
                 impact_scope = EXCLUDED.impact_scope,
                 is_breaking = EXCLUDED.is_breaking,
@@ -303,16 +318,15 @@ def save_artifact_to_postgres(
                 artifact.intent_summary,
                 None,
                 tags,
-                Json([]),
-                Json({"sha": sha}),
-                Json(payload),
+                _json([]),
+                _json({"sha": sha}),
                 artifact.category.value,
                 artifact.impact_scope.value,
                 artifact.is_breaking,
                 artifact.behavior_before,
                 artifact.behavior_after,
                 artifact.technical_highlights,
-                Json(analysis_meta) if analysis_meta else None,
+                _json(analysis_meta) if analysis_meta else None,
                 tool_version,
             ),
         )
@@ -330,15 +344,26 @@ def load_artifact_from_postgres(commit_sha: str) -> Optional[CommitArtifact]:
         project = _resolve_project(conn)
         row = conn.execute(
             f"""
-            SELECT raw_artifact FROM {POSTGRES_TABLE}
+            SELECT
+                source_ref,
+                schema_version,
+                summary,
+                description,
+                category,
+                impact_scope,
+                is_breaking,
+                behavior_before,
+                behavior_after,
+                technical_highlights,
+                analysis_meta
+            FROM {POSTGRES_TABLE}
             WHERE project_id = %s AND content_type = %s AND source_ref = %s
             """,
             (project.project_id, CONTENT_TYPE_COMMIT_ARTIFACT, commit_sha),
         ).fetchone()
     if not row:
         return None
-    data = row["raw_artifact"]
-    return _record_to_artifact(data)
+    return _row_to_artifact(row)
 
 
 def artifact_exists_in_postgres(commit_sha: str) -> bool:
@@ -380,11 +405,23 @@ def load_artifacts_for_range_postgres(
         project = _resolve_project(conn)
         rows = conn.execute(
             f"""
-            SELECT source_ref, raw_artifact FROM {POSTGRES_TABLE}
+            SELECT
+                source_ref,
+                schema_version,
+                summary,
+                description,
+                category,
+                impact_scope,
+                is_breaking,
+                behavior_before,
+                behavior_after,
+                technical_highlights,
+                analysis_meta
+            FROM {POSTGRES_TABLE}
             WHERE project_id = %s AND content_type = %s AND source_ref = ANY(%s)
             """,
             (project.project_id, CONTENT_TYPE_COMMIT_ARTIFACT, commit_shas),
         ).fetchall()
     for row in rows:
-        result[row["source_ref"]] = _record_to_artifact(row["raw_artifact"])
+        result[row["source_ref"]] = _row_to_artifact(row)
     return result

@@ -97,12 +97,39 @@ def release_notes(
     - optionally computes missing artifacts in-memory (no `git notes add`)
     - synthesizes release notes and writes markdown/text output
     """
+    output, fmt = _build_release_notes_output(
+        revision_range,
+        output_format=output_format,
+        compute_missing=compute_missing,
+        reanalyze_existing=reanalyze_existing,
+        use_llm=use_llm,
+        provider_name=provider_name,
+        model=model,
+        product_name=product_name,
+        version=version,
+        storage=storage,
+    )
+    _write_output(output, output_file, format_hint=fmt, revision_range=revision_range)
+
+
+def _build_release_notes_output(
+    revision_range: str,
+    *,
+    output_format: str = "markdown",
+    compute_missing: bool = True,
+    reanalyze_existing: bool = False,
+    use_llm: bool = True,
+    provider_name: Optional[str] = None,
+    model: Optional[str] = None,
+    product_name: Optional[str] = None,
+    version: Optional[str] = None,
+    storage: str = "notes",
+) -> tuple[str, str]:
+    """Build release notes output without writing artifacts."""
     # Typer wraps defaults in OptionInfo. Normalize for tests/power users that
     # call this function directly (without going through the CLI).
     if isinstance(output_format, OptionInfo):
         output_format = "markdown"
-    if isinstance(output_file, OptionInfo):
-        output_file = None
     if isinstance(compute_missing, OptionInfo):
         compute_missing = True
     if isinstance(reanalyze_existing, OptionInfo):
@@ -218,9 +245,7 @@ def release_notes(
     else:
         output = format_release_note_markdown(release_note)
 
-    _write_output(
-        output, output_file, format_hint=output_format, revision_range=revision_range
-    )
+    return output, output_format
 
 
 def _write_output(

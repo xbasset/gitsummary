@@ -74,7 +74,7 @@ def test_release_note_latest_writes_html(
     monkeypatch.setattr(
         release_note_cmd,
         "load_artifacts_for_range",
-        lambda shas: {simple_commit.sha: feature_artifact},
+        lambda shas, **_kwargs: {simple_commit.sha: feature_artifact},
     )
     monkeypatch.setattr(
         release_note_cmd.ReporterService,

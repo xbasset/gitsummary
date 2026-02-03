@@ -50,19 +50,19 @@ psql "$DSN" -v ON_ERROR_STOP=1 -X -c "
 SELECT
   project_id,
   source_ref,
-  raw_artifact ? 'analysis_meta' AS has_analysis_meta,
-  raw_artifact->'analysis_meta'->>'analysis_mode' AS analysis_mode,
-  raw_artifact->'analysis_meta'->>'provider' AS provider,
-  raw_artifact->'analysis_meta'->>'model' AS model,
-  raw_artifact->'analysis_meta'->'token_usage' AS token_usage,
-  raw_artifact->'analysis_meta'->'input_metrics' AS input_metrics,
-  raw_artifact->'analysis_meta'->'qualitative' AS qualitative
+  analysis_meta IS NOT NULL AS has_analysis_meta,
+  analysis_meta->>'analysis_mode' AS analysis_mode,
+  analysis_meta->>'provider' AS provider,
+  analysis_meta->>'model' AS model,
+  analysis_meta->'token_usage' AS token_usage,
+  analysis_meta->'input_metrics' AS input_metrics,
+  analysis_meta->'qualitative' AS qualitative
 FROM artifacts
 WHERE project_id = '${PROJECT_ID}'
   AND content_type = 'gitsummary.commit_artifact'
   AND source_ref = '${COMMIT_SHA}';
 
-SELECT jsonb_pretty(raw_artifact->'analysis_meta') AS analysis_meta_pretty
+SELECT jsonb_pretty(analysis_meta) AS analysis_meta_pretty
 FROM artifacts
 WHERE project_id = '${PROJECT_ID}'
   AND content_type = 'gitsummary.commit_artifact'

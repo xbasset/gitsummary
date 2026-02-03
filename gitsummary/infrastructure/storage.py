@@ -2,7 +2,7 @@
 
 This module provides high-level storage operations for CommitArtifacts,
 using Git Notes (default) or Postgres based on configuration. Artifacts
-are serialized to YAML for Git Notes; Postgres stores JSON payloads.
+are serialized to YAML for Git Notes; Postgres stores structured columns.
 """
 
 from __future__ import annotations

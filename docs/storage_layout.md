@@ -79,7 +79,6 @@ When `--storage postgres` (or `GITSUMMARY_STORAGE_BACKEND=postgres`) is set, art
 - `tags` (text[])
 - `signals` (jsonb)
 - `commit` (jsonb, optional)
-- `raw_artifact` (jsonb, CommitArtifact payload + metadata)
 - `category` (text, CommitArtifact category)
 - `impact_scope` (text, CommitArtifact impact scope)
 - `is_breaking` (boolean, CommitArtifact breaking change flag)

@@ -48,7 +48,7 @@ def test_ci_release_notes_reuses_notes_and_computes_missing_in_memory(
         commits[1].sha: None,
     }
 
-    def fake_load_artifacts_for_range(shas):
+    def fake_load_artifacts_for_range(shas, **_kwargs):
         return {sha: notes_artifacts.get(sha) for sha in shas}
 
     analyzed = []

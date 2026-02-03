@@ -26,7 +26,7 @@ def test_generate_feed_writes_default_file(
     monkeypatch.setattr(
         generate_cmd,
         "load_artifacts_for_range",
-        lambda shas: {simple_commit.sha: feature_artifact},
+        lambda shas, **_kwargs: {simple_commit.sha: feature_artifact},
     )
 
     builder = ArtifactFeedBuilder()
