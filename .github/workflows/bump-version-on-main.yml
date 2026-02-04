@@ -31,6 +31,10 @@ jobs:
             echo "Already a version bump commit; skipping."
             exit 0
           fi
+          if echo "$SUBJECT" | grep -q "^Release v"; then
+            echo "Release commit; skipping patch bump."
+            exit 0
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -59,5 +63,4 @@ jobs:
           git add gitsummary/__init__.py
           git commit -m "chore(version): bump patch to ${NEW_VERSION}"
           git push
-
 

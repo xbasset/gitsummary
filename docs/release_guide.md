@@ -69,6 +69,13 @@ Notes
   - CLI: `gh release create v0.3.0-alpha.1 --notes "Release v0.3.0-alpha.1"` (add `--prerelease` if appropriate).
   - You can automate this in CI (on tag push) by running `gh release create` after your build/publish step.  
 
+Tag-only when version already bumped
+-----------------------------------
+If the version file on the branch head already matches the target version (for example
+because `bump-version-on-main` ran or you already bumped locally), `manage_release.py`
+skips creating a new commit and tags the branch head instead. This avoids redundant
+`Release vX.Y.Z` commits and keeps `main` clean.
+
 gitsummary automated release notes (recommended)
 ----------------------------------------------
 
@@ -114,6 +121,10 @@ enable the workflow `.github/workflows/bump-version-on-main.yml`.
 
 This workflow bumps `gitsummary/__init__.py` from `X.Y.Z` to `X.Y.(Z+1)` and pushes a commit to `main`.
 Releases remain manual and are not triggered by this bump.
+
+Note: Any commit pushed to `main` will trigger this workflow, including a release commit created by
+`manage_release.py`. The workflow skips commits with subject `Release v*`, so you can safely
+cherry-pick a release commit onto `main` without an immediate patch bump.
 
 GitHub Actions workflow example
 -------------------------------

@@ -472,22 +472,35 @@ def main() -> int:
 
         file_content = fetch_file_at_ref(repo, version_file, base_commit_sha)
         updated_content = update_version_in_content(file_content, target_version)
-        print(f"Updated {version_file} version line")
+        no_version_change = updated_content == file_content
+        if no_version_change:
+            print(
+                f"{version_file} already at {target_version.version_string()}; tagging base commit."
+            )
+        else:
+            print(f"Updated {version_file} version line")
 
         if args.dry_run:
             print(f"version={target_version.tag()}")
             print(f"base_commit={base_commit_sha}")
+            if no_version_change:
+                print("tag_target=base_commit")
+            else:
+                print("tag_target=new_commit")
             return 0
 
-        blob_sha = create_blob(repo, updated_content)
-        print(f"Created blob {blob_sha}")
+        if no_version_change:
+            commit_sha = base_commit_sha
+        else:
+            blob_sha = create_blob(repo, updated_content)
+            print(f"Created blob {blob_sha}")
 
-        tree_sha = create_tree(repo, base_tree_sha, version_file, blob_sha)
-        print(f"Created tree {tree_sha}")
+            tree_sha = create_tree(repo, base_tree_sha, version_file, blob_sha)
+            print(f"Created tree {tree_sha}")
 
-        commit_message = commit_template.format(version=target_version.tag())
-        commit_sha = create_commit(repo, commit_message, tree_sha, base_commit_sha)
-        print(f"Created commit {commit_sha}")
+            commit_message = commit_template.format(version=target_version.tag())
+            commit_sha = create_commit(repo, commit_message, tree_sha, base_commit_sha)
+            print(f"Created commit {commit_sha}")
 
         tag_message = tag_template.format(version=target_version.tag())
         tag_sha = create_tag(repo, target_version.tag(), tag_message, commit_sha)

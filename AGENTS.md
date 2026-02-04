@@ -42,7 +42,10 @@ Work style: telegraph; noun-phrases ok; drop grammar; min tokens.
 - Before handoff: run full gate (lint/typecheck/tests/docs).
 - CI red: `gh run list/view`, rerun, fix, push, repeat til green.
 - Keep it observable (logs, panes, tails, MCP/browser tools).
-- Release: read `docs/RELEASING.md` (or find best checklist if missing).
+- Release: read `docs/release_guide.md`; use `python manage_release.py ... --version-file gitsummary/__init__.py`.
+- Release: publish GitHub Release (`gh release create vX.Y.Z ...`) to trigger `gitsummary-release-notes`.
+- Release: if version already bumped on `main`, expect tag-only path (no extra commit).
+- Release: bump workflow skips `Release v*` commits.
 - Reminder: check `~/.zprofile` for missing env keys.
 
 ## Git
