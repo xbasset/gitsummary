@@ -50,19 +50,47 @@ psql "$DSN" -v ON_ERROR_STOP=1 -X -c "
 SELECT
   project_id,
   source_ref,
-  analysis_meta IS NOT NULL AS has_analysis_meta,
-  analysis_meta->>'analysis_mode' AS analysis_mode,
-  analysis_meta->>'provider' AS provider,
-  analysis_meta->>'model' AS model,
-  analysis_meta->'token_usage' AS token_usage,
-  analysis_meta->'input_metrics' AS input_metrics,
-  analysis_meta->'qualitative' AS qualitative
-FROM artifacts
-WHERE project_id = '${PROJECT_ID}'
-  AND content_type = 'gitsummary.commit_artifact'
-  AND source_ref = '${COMMIT_SHA}';
-
-SELECT jsonb_pretty(analysis_meta) AS analysis_meta_pretty
+  (
+    analysis_mode IS NOT NULL
+    OR analysis_provider IS NOT NULL
+    OR analysis_model IS NOT NULL
+    OR analysis_prompt_version IS NOT NULL
+    OR analysis_timestamp IS NOT NULL
+    OR analysis_token_usage_input IS NOT NULL
+    OR analysis_input_metrics_diff_files IS NOT NULL
+    OR analysis_qualitative_technical_difficulty_score IS NOT NULL
+  ) AS has_analysis_fields,
+  analysis_mode,
+  analysis_provider,
+  analysis_model,
+  analysis_prompt_version,
+  analysis_timestamp,
+  analysis_duration_ms,
+  analysis_fallback_reason,
+  analysis_token_usage_input,
+  analysis_token_usage_output,
+  analysis_token_usage_cached,
+  analysis_input_metrics_commit_message_chars,
+  analysis_input_metrics_commit_message_lines,
+  analysis_input_metrics_commit_message_tokens,
+  analysis_input_metrics_diff_files,
+  analysis_input_metrics_diff_insertions,
+  analysis_input_metrics_diff_deletions,
+  analysis_input_metrics_diff_total,
+  analysis_input_metrics_diff_hunks,
+  analysis_input_metrics_diff_chars,
+  analysis_input_metrics_diff_lines,
+  analysis_input_metrics_diff_tokens,
+  analysis_qualitative_technical_difficulty_score,
+  analysis_qualitative_technical_difficulty_explanation,
+  analysis_qualitative_creativity_score,
+  analysis_qualitative_creativity_explanation,
+  analysis_qualitative_mental_load_score,
+  analysis_qualitative_mental_load_explanation,
+  analysis_qualitative_review_effort_score,
+  analysis_qualitative_review_effort_explanation,
+  analysis_qualitative_ambiguity_score,
+  analysis_qualitative_ambiguity_explanation
 FROM artifacts
 WHERE project_id = '${PROJECT_ID}'
   AND content_type = 'gitsummary.commit_artifact'

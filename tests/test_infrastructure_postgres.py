@@ -77,11 +77,12 @@ class TestSaveArtifactToPostgres:
         sql, params = conn.calls[0]
         assert "INSERT INTO" in sql
         assert "raw_artifact" not in sql
-        assert "analysis_meta" in sql
+        assert "analysis_meta" not in sql
+        assert "analysis_mode" in sql
         assert "tool_version" in sql
 
         assert isinstance(params, tuple)
-        assert len(params) == 20
+        assert len(params) == 19 + len(pg.ANALYSIS_COLUMN_NAMES)
 
         project = _project()
         assert params[0] == f"{project.project_id}:{pg.CONTENT_TYPE_COMMIT_ARTIFACT}:{feature_artifact.commit_hash}"
@@ -94,8 +95,7 @@ class TestSaveArtifactToPostgres:
         assert params[13] == feature_artifact.impact_scope.value
         assert params[14] == feature_artifact.is_breaking
         assert params[17] == feature_artifact.technical_highlights
-        assert params[18] is None
-        assert params[19] == pg.__version__
+        assert params[-1] == pg.__version__
 
     def test_force_false_raises_if_existing(
         self, monkeypatch: pytest.MonkeyPatch, feature_artifact: CommitArtifact
@@ -134,11 +134,9 @@ class TestSaveArtifactToPostgres:
         pg.save_artifact_to_postgres(artifact)
         _sql, params = conn.calls[0]
         assert isinstance(params, tuple)
-        meta = params[18]
-        assert isinstance(meta, dict)
-        assert meta["analysis_mode"] == "llm"
-        assert meta["provider"] == "openai"
-        assert meta["model"] == "gpt-4.1"
+        assert "llm" in params
+        assert "openai" in params
+        assert "gpt-4.1" in params
 
 
 class TestLoadArtifactFromPostgres:
@@ -156,7 +154,7 @@ class TestLoadArtifactFromPostgres:
             "behavior_before": feature_artifact.behavior_before,
             "behavior_after": feature_artifact.behavior_after,
             "technical_highlights": feature_artifact.technical_highlights,
-            "analysis_meta": {"analysis_mode": "llm"},
+            "analysis_mode": "llm",
         }
         conn = FakeConn(responses=[FakeCursor(one=row)])
         monkeypatch.setattr(pg, "_connect", lambda: conn)
@@ -202,7 +200,6 @@ class TestLoadArtifactsForRangePostgres:
                 "behavior_before": feature_artifact.behavior_before,
                 "behavior_after": feature_artifact.behavior_after,
                 "technical_highlights": feature_artifact.technical_highlights,
-                "analysis_meta": None,
             }
         ]
         conn = FakeConn(responses=[FakeCursor(all_rows=rows)])
@@ -213,4 +210,3 @@ class TestLoadArtifactsForRangePostgres:
         result = pg.load_artifacts_for_range_postgres(wanted)
         assert result[wanted[0]] is not None
         assert result[wanted[1]] is None
-

@@ -14,6 +14,7 @@ The content of the note is a UTF-8 encoded **YAML** string.
 **Validation:** The YAML content must strictly conform to the `CommitArtifact` Pydantic model defined in `gitsummary/schema.py`. This ensures type safety and schema validation despite the storage format being YAML.
 
 The schema now includes `analysis_meta` for provenance, input metrics, token usage, and qualitative scores.
+In Postgres, those fields are stored in structured `analysis_*` columns for queryable access.
 
 ### Example Note Content
 ```yaml
@@ -85,7 +86,10 @@ When `--storage postgres` (or `GITSUMMARY_STORAGE_BACKEND=postgres`) is set, art
 - `behavior_before` (text, CommitArtifact behavior before)
 - `behavior_after` (text, CommitArtifact behavior after)
 - `technical_highlights` (text[], CommitArtifact technical highlights)
-- `analysis_meta` (jsonb, CommitArtifact analysis metadata)
+- `analysis_mode` / `analysis_provider` / `analysis_model` / `analysis_prompt_version` / `analysis_timestamp` / `analysis_duration_ms` / `analysis_fallback_reason`
+- `analysis_token_usage_input` / `analysis_token_usage_output` / `analysis_token_usage_cached`
+- `analysis_input_metrics_commit_message_*` and `analysis_input_metrics_diff_*`
+- `analysis_qualitative_*_{score,explanation}` (technical_difficulty, creativity, mental_load, review_effort, ambiguity)
 - `tool_version` (text, gitsummary version that generated the artifact)
 
 ### Connection

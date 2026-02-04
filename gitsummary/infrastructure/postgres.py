@@ -6,10 +6,17 @@ import os
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from .. import __version__
-from ..core import CommitArtifact
+from ..core import (
+    AnalysisMeta,
+    CommitArtifact,
+    InputMetrics,
+    QualitativeScores,
+    QualitativeSignal,
+    TokenUsage,
+)
 from .git import GitCommandError, repository_root
 from ..tracing import trace_manager
 
@@ -21,6 +28,54 @@ PROJECT_NAME_ENV = "GITSUMMARY_PROJECT_NAME"
 PROJECT_PROVIDER_ENV = "GITSUMMARY_PROJECT_PROVIDER"
 PROJECT_URL_ENV = "GITSUMMARY_PROJECT_URL"
 CONTENT_TYPE_COMMIT_ARTIFACT = "gitsummary.commit_artifact"
+
+ANALYSIS_COLUMNS: Tuple[Tuple[str, str], ...] = (
+    ("analysis_mode", "text"),
+    ("analysis_provider", "text"),
+    ("analysis_model", "text"),
+    ("analysis_prompt_version", "text"),
+    ("analysis_timestamp", "timestamptz"),
+    ("analysis_duration_ms", "integer"),
+    ("analysis_fallback_reason", "text"),
+    ("analysis_token_usage_input", "integer"),
+    ("analysis_token_usage_output", "integer"),
+    ("analysis_token_usage_cached", "integer"),
+    ("analysis_input_metrics_commit_message_chars", "integer"),
+    ("analysis_input_metrics_commit_message_lines", "integer"),
+    ("analysis_input_metrics_commit_message_tokens", "integer"),
+    ("analysis_input_metrics_diff_files", "integer"),
+    ("analysis_input_metrics_diff_insertions", "integer"),
+    ("analysis_input_metrics_diff_deletions", "integer"),
+    ("analysis_input_metrics_diff_total", "integer"),
+    ("analysis_input_metrics_diff_hunks", "integer"),
+    ("analysis_input_metrics_diff_chars", "integer"),
+    ("analysis_input_metrics_diff_lines", "integer"),
+    ("analysis_input_metrics_diff_tokens", "integer"),
+    ("analysis_qualitative_technical_difficulty_score", "integer"),
+    ("analysis_qualitative_technical_difficulty_explanation", "text"),
+    ("analysis_qualitative_creativity_score", "integer"),
+    ("analysis_qualitative_creativity_explanation", "text"),
+    ("analysis_qualitative_mental_load_score", "integer"),
+    ("analysis_qualitative_mental_load_explanation", "text"),
+    ("analysis_qualitative_review_effort_score", "integer"),
+    ("analysis_qualitative_review_effort_explanation", "text"),
+    ("analysis_qualitative_ambiguity_score", "integer"),
+    ("analysis_qualitative_ambiguity_explanation", "text"),
+)
+
+ANALYSIS_COLUMN_NAMES = [name for name, _dtype in ANALYSIS_COLUMNS]
+ANALYSIS_COLUMN_DEFS = ",\n            ".join(
+    f"{name} {dtype}" for name, dtype in ANALYSIS_COLUMNS
+)
+ANALYSIS_COLUMN_ALTERS = ",\n            ".join(
+    f"ADD COLUMN IF NOT EXISTS {name} {dtype}" for name, dtype in ANALYSIS_COLUMNS
+)
+ANALYSIS_COLUMN_SELECT = ",\n                ".join(ANALYSIS_COLUMN_NAMES)
+ANALYSIS_COLUMN_INSERT = ",\n                ".join(ANALYSIS_COLUMN_NAMES)
+ANALYSIS_COLUMN_PLACEHOLDERS = ", ".join(["%s"] * len(ANALYSIS_COLUMN_NAMES))
+ANALYSIS_COLUMN_UPDATES = ",\n                ".join(
+    f"{name} = EXCLUDED.{name}" for name in ANALYSIS_COLUMN_NAMES
+)
 
 
 @dataclass
@@ -92,7 +147,7 @@ def _ensure_schema(conn: psycopg.Connection) -> None:
             behavior_before text,
             behavior_after text,
             technical_highlights text[] NOT NULL DEFAULT '{{}}'::text[],
-            analysis_meta jsonb,
+            {ANALYSIS_COLUMN_DEFS},
             tool_version text,
             commit jsonb,
             created_at timestamptz NOT NULL DEFAULT now(),
@@ -112,7 +167,7 @@ def _ensure_schema(conn: psycopg.Connection) -> None:
             ADD COLUMN IF NOT EXISTS behavior_before text,
             ADD COLUMN IF NOT EXISTS behavior_after text,
             ADD COLUMN IF NOT EXISTS technical_highlights text[],
-            ADD COLUMN IF NOT EXISTS analysis_meta jsonb,
+            {ANALYSIS_COLUMN_ALTERS},
             ADD COLUMN IF NOT EXISTS tool_version text
         """
     )
@@ -218,6 +273,163 @@ def _resolve_project(conn: psycopg.Connection) -> ProjectInfo:
     return info
 
 
+def _analysis_values(meta: Optional[AnalysisMeta]) -> Tuple[object, ...]:
+    values: Dict[str, object] = {name: None for name in ANALYSIS_COLUMN_NAMES}
+    if not meta:
+        return tuple(values[name] for name in ANALYSIS_COLUMN_NAMES)
+
+    values["analysis_mode"] = meta.analysis_mode
+    values["analysis_provider"] = meta.provider
+    values["analysis_model"] = meta.model
+    values["analysis_prompt_version"] = meta.prompt_version
+    values["analysis_timestamp"] = meta.analysis_timestamp
+    values["analysis_duration_ms"] = meta.analysis_duration_ms
+    values["analysis_fallback_reason"] = meta.fallback_reason
+
+    if meta.token_usage:
+        values["analysis_token_usage_input"] = meta.token_usage.input
+        values["analysis_token_usage_output"] = meta.token_usage.output
+        values["analysis_token_usage_cached"] = meta.token_usage.cached
+
+    if meta.input_metrics:
+        values["analysis_input_metrics_commit_message_chars"] = meta.input_metrics.commit_message_chars
+        values["analysis_input_metrics_commit_message_lines"] = meta.input_metrics.commit_message_lines
+        values["analysis_input_metrics_commit_message_tokens"] = meta.input_metrics.commit_message_tokens
+        values["analysis_input_metrics_diff_files"] = meta.input_metrics.diff_files
+        values["analysis_input_metrics_diff_insertions"] = meta.input_metrics.diff_insertions
+        values["analysis_input_metrics_diff_deletions"] = meta.input_metrics.diff_deletions
+        values["analysis_input_metrics_diff_total"] = meta.input_metrics.diff_total
+        values["analysis_input_metrics_diff_hunks"] = meta.input_metrics.diff_hunks
+        values["analysis_input_metrics_diff_chars"] = meta.input_metrics.diff_chars
+        values["analysis_input_metrics_diff_lines"] = meta.input_metrics.diff_lines
+        values["analysis_input_metrics_diff_tokens"] = meta.input_metrics.diff_tokens
+
+    if meta.qualitative:
+        def set_qual(prefix: str, signal: Optional[QualitativeSignal]) -> None:
+            if not signal:
+                return
+            values[f"analysis_qualitative_{prefix}_score"] = signal.score
+            values[f"analysis_qualitative_{prefix}_explanation"] = signal.explanation
+
+        set_qual("technical_difficulty", meta.qualitative.technical_difficulty)
+        set_qual("creativity", meta.qualitative.creativity)
+        set_qual("mental_load", meta.qualitative.mental_load)
+        set_qual("review_effort", meta.qualitative.review_effort)
+        set_qual("ambiguity", meta.qualitative.ambiguity)
+
+    return tuple(values[name] for name in ANALYSIS_COLUMN_NAMES)
+
+
+def _qual_signal(score: object, explanation: object) -> Optional[QualitativeSignal]:
+    if score is None and explanation is None:
+        return None
+    return QualitativeSignal(score=score, explanation=explanation)
+
+
+def _analysis_meta_from_row(row: Dict[str, object]) -> Optional[AnalysisMeta]:
+    if not any(row.get(name) is not None for name in ANALYSIS_COLUMN_NAMES):
+        return None
+
+    analysis_timestamp = row.get("analysis_timestamp")
+    if isinstance(analysis_timestamp, datetime):
+        analysis_timestamp = analysis_timestamp.isoformat()
+
+    token_usage = None
+    if (
+        row.get("analysis_token_usage_input") is not None
+        or row.get("analysis_token_usage_output") is not None
+        or row.get("analysis_token_usage_cached") is not None
+    ):
+        token_usage = TokenUsage(
+            input=row.get("analysis_token_usage_input"),
+            output=row.get("analysis_token_usage_output"),
+            cached=row.get("analysis_token_usage_cached"),
+        )
+
+    input_metrics = None
+    if any(
+        row.get(name) is not None
+        for name in (
+            "analysis_input_metrics_commit_message_chars",
+            "analysis_input_metrics_commit_message_lines",
+            "analysis_input_metrics_commit_message_tokens",
+            "analysis_input_metrics_diff_files",
+            "analysis_input_metrics_diff_insertions",
+            "analysis_input_metrics_diff_deletions",
+            "analysis_input_metrics_diff_total",
+            "analysis_input_metrics_diff_hunks",
+            "analysis_input_metrics_diff_chars",
+            "analysis_input_metrics_diff_lines",
+            "analysis_input_metrics_diff_tokens",
+        )
+    ):
+        input_metrics = InputMetrics(
+            commit_message_chars=row.get("analysis_input_metrics_commit_message_chars"),
+            commit_message_lines=row.get("analysis_input_metrics_commit_message_lines"),
+            commit_message_tokens=row.get("analysis_input_metrics_commit_message_tokens"),
+            diff_files=row.get("analysis_input_metrics_diff_files"),
+            diff_insertions=row.get("analysis_input_metrics_diff_insertions"),
+            diff_deletions=row.get("analysis_input_metrics_diff_deletions"),
+            diff_total=row.get("analysis_input_metrics_diff_total"),
+            diff_hunks=row.get("analysis_input_metrics_diff_hunks"),
+            diff_chars=row.get("analysis_input_metrics_diff_chars"),
+            diff_lines=row.get("analysis_input_metrics_diff_lines"),
+            diff_tokens=row.get("analysis_input_metrics_diff_tokens"),
+        )
+
+    qualitative = None
+    if any(
+        row.get(name) is not None
+        for name in (
+            "analysis_qualitative_technical_difficulty_score",
+            "analysis_qualitative_technical_difficulty_explanation",
+            "analysis_qualitative_creativity_score",
+            "analysis_qualitative_creativity_explanation",
+            "analysis_qualitative_mental_load_score",
+            "analysis_qualitative_mental_load_explanation",
+            "analysis_qualitative_review_effort_score",
+            "analysis_qualitative_review_effort_explanation",
+            "analysis_qualitative_ambiguity_score",
+            "analysis_qualitative_ambiguity_explanation",
+        )
+    ):
+        qualitative = QualitativeScores(
+            technical_difficulty=_qual_signal(
+                row.get("analysis_qualitative_technical_difficulty_score"),
+                row.get("analysis_qualitative_technical_difficulty_explanation"),
+            ),
+            creativity=_qual_signal(
+                row.get("analysis_qualitative_creativity_score"),
+                row.get("analysis_qualitative_creativity_explanation"),
+            ),
+            mental_load=_qual_signal(
+                row.get("analysis_qualitative_mental_load_score"),
+                row.get("analysis_qualitative_mental_load_explanation"),
+            ),
+            review_effort=_qual_signal(
+                row.get("analysis_qualitative_review_effort_score"),
+                row.get("analysis_qualitative_review_effort_explanation"),
+            ),
+            ambiguity=_qual_signal(
+                row.get("analysis_qualitative_ambiguity_score"),
+                row.get("analysis_qualitative_ambiguity_explanation"),
+            ),
+        )
+
+    return AnalysisMeta(
+        analysis_mode=row.get("analysis_mode"),
+        provider=row.get("analysis_provider"),
+        model=row.get("analysis_model"),
+        prompt_version=row.get("analysis_prompt_version"),
+        analysis_timestamp=analysis_timestamp,
+        analysis_duration_ms=row.get("analysis_duration_ms"),
+        fallback_reason=row.get("analysis_fallback_reason"),
+        token_usage=token_usage,
+        input_metrics=input_metrics,
+        qualitative=qualitative,
+    )
+
+
 def _row_to_artifact(row: Dict[str, object]) -> CommitArtifact:
     intent_summary = row.get("description") or row.get("summary") or ""
     technical_highlights = row.get("technical_highlights") or []
@@ -232,7 +444,7 @@ def _row_to_artifact(row: Dict[str, object]) -> CommitArtifact:
         behavior_before=row.get("behavior_before"),
         behavior_after=row.get("behavior_after"),
         technical_highlights=list(technical_highlights),
-        analysis_meta=row.get("analysis_meta"),
+        analysis_meta=_analysis_meta_from_row(row),
     )
 
 
@@ -245,7 +457,7 @@ def save_artifact_to_postgres(
     tags: List[str] = [artifact.category.value, artifact.impact_scope.value]
     if artifact.is_breaking:
         tags.append("breaking")
-    analysis_meta = artifact.analysis_meta.model_dump(mode="json") if artifact.analysis_meta else None
+    analysis_values = _analysis_values(artifact.analysis_meta)
     tool_version = __version__
     project = None
     with _connect() as conn:
@@ -284,10 +496,10 @@ def save_artifact_to_postgres(
                 behavior_before,
                 behavior_after,
                 technical_highlights,
-                analysis_meta,
+                {ANALYSIS_COLUMN_INSERT},
                 tool_version
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, {ANALYSIS_COLUMN_PLACEHOLDERS}, %s)
             ON CONFLICT (project_id, content_type, source_ref)
             DO UPDATE SET
                 schema_version = EXCLUDED.schema_version,
@@ -304,7 +516,7 @@ def save_artifact_to_postgres(
                 behavior_before = EXCLUDED.behavior_before,
                 behavior_after = EXCLUDED.behavior_after,
                 technical_highlights = EXCLUDED.technical_highlights,
-                analysis_meta = EXCLUDED.analysis_meta,
+                {ANALYSIS_COLUMN_UPDATES},
                 tool_version = EXCLUDED.tool_version
             """,
             (
@@ -326,7 +538,7 @@ def save_artifact_to_postgres(
                 artifact.behavior_before,
                 artifact.behavior_after,
                 artifact.technical_highlights,
-                _json(analysis_meta) if analysis_meta else None,
+                *analysis_values,
                 tool_version,
             ),
         )
@@ -355,7 +567,7 @@ def load_artifact_from_postgres(commit_sha: str) -> Optional[CommitArtifact]:
                 behavior_before,
                 behavior_after,
                 technical_highlights,
-                analysis_meta
+                {ANALYSIS_COLUMN_SELECT}
             FROM {POSTGRES_TABLE}
             WHERE project_id = %s AND content_type = %s AND source_ref = %s
             """,
@@ -416,7 +628,7 @@ def load_artifacts_for_range_postgres(
                 behavior_before,
                 behavior_after,
                 technical_highlights,
-                analysis_meta
+                {ANALYSIS_COLUMN_SELECT}
             FROM {POSTGRES_TABLE}
             WHERE project_id = %s AND content_type = %s AND source_ref = ANY(%s)
             """,

@@ -46,4 +46,4 @@ Project identity (optional overrides):
 Artifacts are stored in `public.artifacts` with:
 - `content_type = gitsummary.commit_artifact`
 - `source_ref = <commit sha>`
-- structured columns (`category`, `impact_scope`, `is_breaking`, `behavior_before`, `behavior_after`, `technical_highlights`, `analysis_meta`, `tool_version`)
+- structured columns (`category`, `impact_scope`, `is_breaking`, `behavior_before`, `behavior_after`, `technical_highlights`, `analysis_mode`, `analysis_provider`, `analysis_model`, `analysis_prompt_version`, `analysis_timestamp`, `analysis_duration_ms`, `analysis_fallback_reason`, `analysis_token_usage_*`, `analysis_input_metrics_*`, `analysis_qualitative_*`, `tool_version`)
