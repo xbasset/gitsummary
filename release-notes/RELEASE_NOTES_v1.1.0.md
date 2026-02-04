@@ -1,4 +1,4 @@
-# Release Notes — v1.0.4
+# Release Notes — v1.1.0
 
 ## Highlights
 - Flattened commit artifact analysis metadata into structured Postgres columns (`analysis_*`) for queryable access.
