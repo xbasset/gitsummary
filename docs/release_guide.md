@@ -126,6 +126,20 @@ Note: Any commit pushed to `main` will trigger this workflow, including a releas
 `manage_release.py`. The workflow skips commits with subject `Release v*`, so you can safely
 cherry-pick a release commit onto `main` without an immediate patch bump.
 
+Complete a patch release after bump-on-main
+------------------------------------------
+If `bump-version-on-main` advanced the patch version and you want the GitHub "Latest" badge to
+match `main`, you still need to create a tag and a GitHub Release for that patch.
+
+Example for `v1.2.1`:
+```
+python manage_release.py --emergency-version-override v1.2.1 \
+  --repo xbasset/gitsummary \
+  --version-file gitsummary/__init__.py
+
+gh release create v1.2.1 --notes "Release v1.2.1"
+```
+
 GitHub Actions workflow example
 -------------------------------
 This sample workflow builds with `uv`, publishes to PyPI (or another index), and creates a GitHub Release for every `v*.*.*` tag. Adjust names, secrets, and publish command to your environment.
