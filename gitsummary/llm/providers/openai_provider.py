@@ -16,7 +16,7 @@ Requires:
 - OPENAI_API_KEY environment variable or config file
 
 Supported Models:
-- gpt-5.1 (default, latest model with best capabilities)
+- gpt-5.2 (default, latest model with best capabilities)
 - gpt-4.1 (previous generation)
 - gpt-4o-mini (faster, cheaper)
 """
@@ -76,13 +76,15 @@ class OpenAIProvider(BaseLLMProvider):
 
     name = "openai"
     display_name = "OpenAI"
-    default_model = "gpt-5.1"  # Latest model with best capabilities
+    default_model = "gpt-5.2"  # Latest model with best capabilities
 
     # Models that support structured outputs
     STRUCTURED_OUTPUT_MODELS = {
+        "gpt-5-nano",
+        "gpt-5-mini",
+        "gpt-5.2",
         "gpt-5.1",
         "gpt-4.1",
-        "gpt-5.1",
         "gpt-4o-mini",
         "gpt-4o-mini-2024-07-18",
         "gpt-4o",
@@ -123,6 +125,7 @@ class OpenAIProvider(BaseLLMProvider):
                     "Upgrade to openai>=1.0.0 to use the OpenAI provider."
                 ) from exc
             raise
+        self._service_tier = self._resolve_service_tier()
 
     def _validate_config(self) -> None:
         """Validate OpenAI-specific configuration."""
@@ -131,6 +134,20 @@ class OpenAIProvider(BaseLLMProvider):
                 "OpenAI API key is required. Set OPENAI_API_KEY environment variable "
                 "or provide it in the configuration."
             )
+
+    def _resolve_service_tier(self) -> Optional[str]:
+        """Resolve optional OpenAI service tier override from the environment.
+
+        Supported values are: auto, default, flex.
+        """
+        raw = (
+            os.environ.get("GITSUMMARY_OPENAI_SERVICE_TIER")
+            or os.environ.get("OPENAI_SERVICE_TIER")
+            or ""
+        ).strip().lower()
+        if raw in {"auto", "default", "flex"}:
+            return raw
+        return None
 
     @classmethod
     def is_available(cls) -> bool:
@@ -220,13 +237,29 @@ class OpenAIProvider(BaseLLMProvider):
         """Make a single API request using the Responses API with structured output parsing."""
         try:
             # Use the Responses API with text_format for structured outputs
-            response = self._client.responses.parse(
+            request_kwargs: Dict[str, Any] = dict(
                 model=model,
                 input=input_messages,  # type: ignore
                 text_format=schema,
-                temperature=self.config.temperature,
                 max_output_tokens=self.config.max_tokens,
             )
+            if self._supports_temperature(model):
+                request_kwargs["temperature"] = self.config.temperature
+            reasoning = self._reasoning_options(model)
+            if reasoning is not None:
+                request_kwargs["reasoning"] = reasoning
+            if self._service_tier:
+                request_kwargs["service_tier"] = self._service_tier
+
+            try:
+                response = self._client.responses.parse(**request_kwargs)
+            except TypeError as exc:
+                # Some SDK versions may not yet support service_tier.
+                if "service_tier" in request_kwargs and "service_tier" in str(exc):
+                    request_kwargs.pop("service_tier", None)
+                    response = self._client.responses.parse(**request_kwargs)
+                else:
+                    raise
 
             # Build response object
             llm_response = LLMResponse(
@@ -240,11 +273,13 @@ class OpenAIProvider(BaseLLMProvider):
             # Check for refusal in output
             if response.output:
                 for output_item in response.output:
-                    if hasattr(output_item, 'content'):
-                        for content_item in output_item.content:
-                            if hasattr(content_item, 'type') and content_item.type == 'refusal':
-                                llm_response.refusal = getattr(content_item, 'refusal', 'Model refused to respond')
-                                return llm_response
+                    content = getattr(output_item, "content", None) or []
+                    for content_item in content:
+                        if hasattr(content_item, "type") and content_item.type == "refusal":
+                            llm_response.refusal = getattr(
+                                content_item, "refusal", "Model refused to respond"
+                            )
+                            return llm_response
 
             # Extract parsed content from output_parsed
             if hasattr(response, 'output_parsed') and response.output_parsed is not None:
@@ -296,12 +331,27 @@ class OpenAIProvider(BaseLLMProvider):
 
         try:
             # Use basic responses.create for non-structured output
-            response = self._client.responses.create(
+            request_kwargs: Dict[str, Any] = dict(
                 model=model,
                 input=input_messages,  # type: ignore
-                temperature=self.config.temperature,
                 max_output_tokens=self.config.max_tokens,
             )
+            if self._supports_temperature(model):
+                request_kwargs["temperature"] = self.config.temperature
+            reasoning = self._reasoning_options(model)
+            if reasoning is not None:
+                request_kwargs["reasoning"] = reasoning
+            if self._service_tier:
+                request_kwargs["service_tier"] = self._service_tier
+
+            try:
+                response = self._client.responses.create(**request_kwargs)
+            except TypeError as exc:
+                if "service_tier" in request_kwargs and "service_tier" in str(exc):
+                    request_kwargs.pop("service_tier", None)
+                    response = self._client.responses.create(**request_kwargs)
+                else:
+                    raise
 
             return LLMResponse(
                 raw_text=response.output_text or "",
@@ -314,3 +364,24 @@ class OpenAIProvider(BaseLLMProvider):
 
         except Exception as e:
             raise ProviderError(f"OpenAI request failed: {e}") from e
+
+    def _supports_temperature(self, model: str) -> bool:
+        """Return whether this model family accepts temperature.
+
+        GPT-5 family models currently reject explicit temperature values
+        on Responses API calls.
+        """
+        normalized = (model or "").strip().lower()
+        return not normalized.startswith("gpt-5")
+
+    def _reasoning_options(self, model: str) -> Optional[Dict[str, str]]:
+        """Return model-specific reasoning controls for Responses API.
+
+        GPT-5 family defaults to medium reasoning effort, which can consume
+        output-token budget before a JSON answer is emitted in structured mode.
+        Use minimal effort for deterministic extraction workloads.
+        """
+        normalized = (model or "").strip().lower()
+        if normalized.startswith("gpt-5"):
+            return {"effort": "minimal"}
+        return None

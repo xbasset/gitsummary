@@ -39,6 +39,7 @@ class AnalyzerService:
         self,
         use_llm: bool = True,
         provider_name: Optional[str] = None,
+        require_llm_success: bool = False,
     ) -> None:
         """Initialize the analyzer service.
 
@@ -46,9 +47,13 @@ class AnalyzerService:
             use_llm: Whether to attempt LLM extraction (default: True).
             provider_name: Name of LLM provider to use (e.g., "openai", "anthropic").
                           If None, uses the default provider from configuration.
+            require_llm_success: If True and LLM is enabled, fail analysis instead of
+                                 falling back to heuristics when LLM is unavailable
+                                 or returns no semantic data.
         """
         self.use_llm = use_llm
         self.provider_name = provider_name
+        self.require_llm_success = require_llm_success
         self._llm_extractor = LLMExtractor(provider_name=provider_name) if use_llm else None
         self._heuristic_extractor = HeuristicExtractor()
         self._provider_initialized = False
@@ -106,24 +111,46 @@ class AnalyzerService:
 
         # Try LLM extraction first if enabled
         llm_result = None
-        if self._ensure_provider() and self._llm_extractor is not None:
+        provider_ready = self._ensure_provider()
+        if self.require_llm_success and self.use_llm and not provider_ready:
+            raise RuntimeError(
+                "LLM provider unavailable; heuristic fallback is disabled."
+            )
+
+        if provider_ready and self._llm_extractor is not None:
             try:
                 llm_result = self._llm_extractor.extract(commit, diff, diff_patch)
             except Exception as e:
+                if self.require_llm_success:
+                    raise RuntimeError(
+                        f"LLM extraction failed for {commit.short_sha}; heuristic fallback is disabled: {e}"
+                    ) from e
                 logger.warning(f"LLM extraction failed for {commit.short_sha}: {e}")
                 llm_result = None
 
-        # Always run heuristic extraction as fallback
-        heuristic_result = self._heuristic_extractor.extract(commit, diff, diff_patch)
-
-        # Merge results (LLM takes precedence where available)
-        if llm_result and llm_result.has_semantic_data():
-            merged = llm_result.merge_with(heuristic_result)
-        else:
-            merged = heuristic_result
-
         llm_success = llm_result is not None and llm_result.has_semantic_data()
-        analysis_mode = "hybrid" if llm_success else "heuristic"
+        if self.require_llm_success and self.use_llm and not llm_success:
+            fallback_reason = (
+                llm_result.llm_fallback_reason if llm_result else "llm_unavailable_or_empty"
+            )
+            raise RuntimeError(
+                f"LLM extraction did not produce semantic data ({fallback_reason}); heuristic fallback is disabled."
+            )
+
+        if llm_success:
+            if self.require_llm_success:
+                merged = llm_result
+                analysis_mode = "llm"
+            else:
+                # Merge results (LLM takes precedence where available)
+                heuristic_result = self._heuristic_extractor.extract(commit, diff, diff_patch)
+                merged = llm_result.merge_with(heuristic_result)
+                analysis_mode = "hybrid"
+        else:
+            # LLM disabled or unavailable path
+            heuristic_result = self._heuristic_extractor.extract(commit, diff, diff_patch)
+            merged = heuristic_result
+            analysis_mode = "heuristic"
         analysis_meta = AnalysisMeta(
             analysis_mode=analysis_mode,
             provider=llm_result.llm_provider if llm_result else None,
@@ -158,6 +185,7 @@ def build_commit_artifact(
     *,
     use_llm: bool = True,
     provider_name: Optional[str] = None,
+    require_llm_success: bool = False,
 ) -> CommitArtifact:
     """Build a CommitArtifact from commit info and optional diff data.
 
@@ -170,9 +198,15 @@ def build_commit_artifact(
         diff: Optional pre-fetched diff data.
         use_llm: Whether to attempt LLM extraction (default: True).
         provider_name: Name of LLM provider (e.g., "openai", "anthropic").
+        require_llm_success: If True, fail instead of heuristic fallback when
+            LLM extraction is unavailable or empty.
 
     Returns:
         A fully populated CommitArtifact.
     """
-    service = AnalyzerService(use_llm=use_llm, provider_name=provider_name)
+    service = AnalyzerService(
+        use_llm=use_llm,
+        provider_name=provider_name,
+        require_llm_success=require_llm_success,
+    )
     return service.analyze(commit, diff)

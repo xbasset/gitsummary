@@ -277,6 +277,35 @@ class TestLLMIntegration:
         # Heuristic uses commit summary directly
         assert artifact.intent_summary == simple_commit.summary
 
+    def test_llm_extraction_failure_raises_when_strict_mode_enabled(
+        self, simple_commit: CommitInfo
+    ) -> None:
+        """Strict mode should fail when LLM extraction errors."""
+        service = AnalyzerService(use_llm=True, require_llm_success=True)
+
+        mock_llm = MagicMock()
+        mock_llm.extract.side_effect = Exception("LLM API error")
+        service._llm_extractor = mock_llm
+        service._provider_initialized = True
+
+        with patch(
+            "gitsummary.services.analyzer.diff_patch_for_commit", return_value=""
+        ), patch.object(service, "_ensure_provider", return_value=True):
+            with pytest.raises(RuntimeError, match="heuristic fallback is disabled"):
+                service.analyze(simple_commit)
+
+    def test_provider_unavailable_raises_when_strict_mode_enabled(
+        self, simple_commit: CommitInfo
+    ) -> None:
+        """Strict mode should fail when provider cannot initialize."""
+        service = AnalyzerService(use_llm=True, require_llm_success=True)
+
+        with patch(
+            "gitsummary.services.analyzer.diff_patch_for_commit", return_value=""
+        ), patch.object(service, "_ensure_provider", return_value=False):
+            with pytest.raises(RuntimeError, match="provider unavailable"):
+                service.analyze(simple_commit)
+
     def test_llm_result_merged_with_heuristic(
         self, simple_commit: CommitInfo
     ) -> None:

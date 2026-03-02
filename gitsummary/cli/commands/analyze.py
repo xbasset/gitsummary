@@ -67,7 +67,16 @@ def analyze(
         "--model",
         "-m",
         envvar="GITSUMMARY_MODEL",
-        help="Model to use for LLM analysis. Provider-specific (e.g., 'gpt-5.1').",
+        help="Model to use for LLM analysis. Provider-specific (e.g., 'gpt-5-nano').",
+    ),
+    require_llm_success: bool = typer.Option(
+        True,
+        "--require-llm-success/--allow-heuristic-fallback",
+        envvar="GITSUMMARY_REQUIRE_LLM_SUCCESS",
+        help=(
+            "When LLM is enabled, fail commit analysis if LLM extraction is unavailable "
+            "or empty instead of falling back to heuristic extraction."
+        ),
     ),
 ) -> None:
     """Extract semantic understanding from commits and store as artifacts.
@@ -128,7 +137,11 @@ def analyze(
         )
 
     # Initialize the analyzer service (single instance for batch efficiency)
-    analyzer = AnalyzerService(use_llm=use_llm, provider_name=provider)
+    analyzer = AnalyzerService(
+        use_llm=use_llm,
+        provider_name=provider,
+        require_llm_success=require_llm_success,
+    )
 
     analyzed = 0
     skipped = 0

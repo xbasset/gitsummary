@@ -26,7 +26,10 @@ gitsummary release-note latest --no-llm
 ```
 
 ## Core commands
-- Analyze commits: `gitsummary analyze <range> [--dry-run] [--no-llm]`
+- Analyze commits: `gitsummary analyze <range> [--dry-run] [--no-llm] [--require-llm-success]`
+  - Default is strict when LLM is enabled: if extraction fails, the command errors
+    instead of writing heuristic fallback artifacts. Use
+    `--allow-heuristic-fallback` to restore legacy behavior.
 - One-shot release notes: `gitsummary release-note latest [--reanalyze] [--no-llm]`
 - Changelog: `gitsummary generate changelog <range> [--format json]`
 - Show stored artifacts/notes: `gitsummary show <commit>` / `gitsummary show release-note <rev>`
