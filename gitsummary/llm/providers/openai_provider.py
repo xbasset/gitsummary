@@ -379,9 +379,12 @@ class OpenAIProvider(BaseLLMProvider):
 
         GPT-5 family defaults to medium reasoning effort, which can consume
         output-token budget before a JSON answer is emitted in structured mode.
-        Use minimal effort for deterministic extraction workloads.
+        Use the lowest supported effort per model family for extraction workloads.
         """
         normalized = (model or "").strip().lower()
-        if normalized.startswith("gpt-5"):
+        if normalized.startswith("gpt-5-nano"):
             return {"effort": "minimal"}
+        if normalized.startswith("gpt-5"):
+            # gpt-5.2 rejects "minimal"; lowest supported level is "low".
+            return {"effort": "low"}
         return None

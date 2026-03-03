@@ -59,6 +59,23 @@ def test_non_gpt5_models_keep_temperature_in_responses_parse() -> None:
     assert "reasoning" not in kwargs
 
 
+def test_gpt52_uses_low_reasoning_effort() -> None:
+    """gpt-5.2 should receive a supported reasoning effort."""
+    client = MagicMock()
+    client.responses.parse.return_value = _mock_parse_response()
+
+    with patch("gitsummary.llm.providers.openai_provider.OpenAI", return_value=client):
+        provider = OpenAIProvider(
+            ProviderConfig(api_key="sk-test", model="gpt-5.2", temperature=0.7)
+        )
+        provider.extract_structured(prompt="test", schema=_Schema, system_prompt="system")
+
+    kwargs = client.responses.parse.call_args.kwargs
+    assert kwargs["model"] == "gpt-5.2"
+    assert "temperature" not in kwargs
+    assert kwargs["reasoning"] == {"effort": "low"}
+
+
 def test_structured_parse_handles_output_item_with_none_content() -> None:
     """Provider should tolerate Responses API items where content is None."""
     client = MagicMock()
