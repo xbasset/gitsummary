@@ -11,12 +11,12 @@ Modules:
 
 from __future__ import annotations
 
-from .analyzer import AnalyzerService, build_commit_artifact
+from .analyzer import AnalyzerService, SkippableCommitError, build_commit_artifact
 from .reporter import ReporterService
 
 __all__ = [
     "AnalyzerService",
     "ReporterService",
+    "SkippableCommitError",
     "build_commit_artifact",
 ]
-

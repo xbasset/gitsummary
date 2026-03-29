@@ -39,6 +39,16 @@ def normalize_storage_backend(backend: Optional[str]) -> str:
     return value
 
 
+def prepare_storage_backend(backend: Optional[str] = None) -> str:
+    """Perform one-time backend setup before hot-path storage operations."""
+    selected = normalize_storage_backend(backend)
+    if selected == "postgres":
+        from .postgres import ensure_postgres_schema
+
+        ensure_postgres_schema()
+    return selected
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Serialization
 # ─────────────────────────────────────────────────────────────────────────────

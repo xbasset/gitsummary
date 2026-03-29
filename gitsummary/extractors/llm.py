@@ -17,6 +17,7 @@ import time
 from typing import Callable, Dict, Optional
 
 from ..core import ChangeCategory, CommitDiff, CommitInfo, ImpactScope
+from ..llm.base import SkippableLLMError
 from ..tracing import trace_manager
 from .base import ExtractionResult
 
@@ -137,6 +138,8 @@ class LLMExtractor:
         if llm_provider is not None:
             try:
                 return self._extract_with_provider(llm_provider, commit, diff_patch)
+            except SkippableLLMError:
+                raise
             except Exception as e:
                 logger.warning(f"LLM extraction failed: {e}")
                 return ExtractionResult(

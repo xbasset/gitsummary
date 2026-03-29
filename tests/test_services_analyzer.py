@@ -12,8 +12,8 @@ import pytest
 
 from gitsummary.core import ChangeCategory, CommitArtifact, CommitDiff, CommitInfo, ImpactScope
 from gitsummary.extractors.base import ExtractionResult
-from gitsummary.llm.base import LLMResponse
-from gitsummary.services.analyzer import AnalyzerService, build_commit_artifact
+from gitsummary.llm.base import LLMResponse, SkippableLLMError
+from gitsummary.services.analyzer import AnalyzerService, SkippableCommitError, build_commit_artifact
 
 
 class TestAnalyzerService:
@@ -305,6 +305,28 @@ class TestLLMIntegration:
         ), patch.object(service, "_ensure_provider", return_value=False):
             with pytest.raises(RuntimeError, match="provider unavailable"):
                 service.analyze(simple_commit)
+
+    def test_skippable_llm_errors_raise_skippable_commit(
+        self, simple_commit: CommitInfo
+    ) -> None:
+        """Oversized/time-out commits should skip instead of heuristically falling back."""
+        service = AnalyzerService(use_llm=True)
+        mock_llm = MagicMock()
+        mock_llm.extract.side_effect = SkippableLLMError(
+            "llm_timeout",
+            "OpenAI request timed out",
+            retryable=True,
+        )
+        service._llm_extractor = mock_llm
+        service._provider_initialized = True
+
+        with patch(
+            "gitsummary.services.analyzer.diff_patch_for_commit", return_value=""
+        ), patch.object(service, "_ensure_provider", return_value=True):
+            with pytest.raises(SkippableCommitError) as exc_info:
+                service.analyze(simple_commit)
+
+        assert exc_info.value.reason == "llm_timeout"
 
     def test_llm_result_merged_with_heuristic(
         self, simple_commit: CommitInfo

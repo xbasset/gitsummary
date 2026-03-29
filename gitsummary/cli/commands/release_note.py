@@ -20,6 +20,7 @@ from ...infrastructure import (
     list_tags_by_date,
     load_artifacts_for_range,
     load_release_note,
+    prepare_storage_backend,
     RELEASE_NOTE_NOTES_REF,
     repository_root,
     release_note_exists,
@@ -185,6 +186,7 @@ def release_note(
         return
 
     commit_shas = [c.sha for c in commits]
+    prepare_storage_backend(storage)
     artifacts = load_artifacts_for_range(commit_shas, backend=storage)
 
     if reanalyze:

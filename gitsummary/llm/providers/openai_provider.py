@@ -38,12 +38,22 @@ from ..base import (
     ProviderError,
     ProviderNotAvailableError,
     ProviderRateLimitError,
+    SkippableLLMError,
 )
 
 # Check for OpenAI availability
 try:
     import openai
-    from openai import APIConnectionError, APIError, AuthenticationError, OpenAI, RateLimitError
+    from openai import (
+        APIConnectionError,
+        APIError,
+        APIStatusError,
+        APITimeoutError,
+        AuthenticationError,
+        BadRequestError,
+        OpenAI,
+        RateLimitError,
+    )
 
     OPENAI_AVAILABLE = True
 except ImportError:
@@ -114,7 +124,7 @@ class OpenAIProvider(BaseLLMProvider):
             self._client = OpenAI(
                 api_key=self.config.api_key,
                 base_url=self.config.api_base,
-                timeout=self.config.timeout,
+                timeout=self._resolve_timeout_seconds(),
                 max_retries=0,  # We handle retries ourselves for better control
             )
         except TypeError as exc:
@@ -148,6 +158,22 @@ class OpenAIProvider(BaseLLMProvider):
         if raw in {"auto", "default", "flex"}:
             return raw
         return None
+
+    def _resolve_timeout_seconds(self) -> float:
+        """Resolve request timeout with env override support."""
+        env_value = (
+            os.environ.get("GITSUMMARY_OPENAI_TIMEOUT_SECONDS")
+            or os.environ.get("OPENAI_TIMEOUT_SECONDS")
+            or ""
+        ).strip()
+        if env_value:
+            try:
+                parsed = float(env_value)
+            except ValueError:
+                parsed = 0.0
+            if parsed > 0:
+                return parsed
+        return self.config.timeout
 
     @classmethod
     def is_available(cls) -> bool:
@@ -196,6 +222,12 @@ class OpenAIProvider(BaseLLMProvider):
         for attempt in range(self.config.max_retries + 1):
             try:
                 return self._make_request(model, input_messages, schema)
+            except SkippableLLMError as e:
+                last_error = e
+                if e.retryable and attempt < self.config.max_retries:
+                    time.sleep(self.config.retry_delay * (2**attempt))
+                    continue
+                raise
             except ProviderRateLimitError as e:
                 last_error = e
                 if attempt < self.config.max_retries:
@@ -309,10 +341,31 @@ class OpenAIProvider(BaseLLMProvider):
                 f"OpenAI rate limit exceeded. Please wait and retry. Error: {e}"
             ) from e
 
+        except APITimeoutError as e:
+            raise SkippableLLMError(
+                "llm_timeout",
+                f"OpenAI request timed out: {e}",
+                retryable=True,
+            ) from e
+
         except APIConnectionError as e:
+            if self._looks_like_timeout(str(e)):
+                raise SkippableLLMError(
+                    "llm_timeout",
+                    f"OpenAI request timed out: {e}",
+                    retryable=True,
+                ) from e
             raise ProviderError(
                 f"Failed to connect to OpenAI API. Check your network. Error: {e}"
             ) from e
+
+        except (BadRequestError, APIStatusError) as e:
+            if self._is_context_length_error(e):
+                raise SkippableLLMError(
+                    "llm_context_length_exceeded",
+                    f"OpenAI rejected oversized input: {e}",
+                ) from e
+            raise ProviderError(f"OpenAI API error: {e}") from e
 
         except APIError as e:
             raise ProviderError(f"OpenAI API error: {e}") from e
@@ -388,3 +441,29 @@ class OpenAIProvider(BaseLLMProvider):
             # gpt-5.2 rejects "minimal"; lowest supported level is "low".
             return {"effort": "low"}
         return None
+
+    @staticmethod
+    def _looks_like_timeout(message: str) -> bool:
+        lowered = (message or "").lower()
+        return "timed out" in lowered or "timeout" in lowered
+
+    @classmethod
+    def _is_context_length_error(cls, error: Exception) -> bool:
+        lowered = str(error).lower()
+        if "context_length" in lowered or "maximum context length" in lowered:
+            return True
+        body = getattr(error, "body", None)
+        if isinstance(body, dict):
+            candidates = [
+                body.get("code"),
+                body.get("type"),
+                body.get("error", {}).get("code") if isinstance(body.get("error"), dict) else None,
+                body.get("error", {}).get("type") if isinstance(body.get("error"), dict) else None,
+                body.get("error", {}).get("message") if isinstance(body.get("error"), dict) else None,
+            ]
+            return any(
+                isinstance(candidate, str)
+                and ("context_length" in candidate.lower() or "maximum context length" in candidate.lower())
+                for candidate in candidates
+            )
+        return False

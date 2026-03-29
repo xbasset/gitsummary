@@ -14,6 +14,7 @@ from ...infrastructure import (
     GitCommandError,
     list_commits_in_range,
     load_artifacts_for_range,
+    prepare_storage_backend,
 )
 from ..storage import storage_option
 from ..ui import UXState, echo_status, spinner
@@ -85,6 +86,7 @@ def list_commits(
 
     # Check analysis status for all commits
     shas = [c.sha for c in commits]
+    prepare_storage_backend(storage)
     with spinner("Loading artifacts", final_state=UXState.SUCCESS):
         artifacts = load_artifacts_for_range(shas, backend=storage)
 

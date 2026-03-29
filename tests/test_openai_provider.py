@@ -5,9 +5,12 @@ from __future__ import annotations
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+import httpx
+import pytest
 from pydantic import BaseModel
 
-from gitsummary.llm.base import ProviderConfig
+from gitsummary.llm.base import ProviderConfig, SkippableLLMError
+from gitsummary.llm.providers import openai_provider as provider_module
 from gitsummary.llm.providers.openai_provider import OpenAIProvider
 
 
@@ -97,3 +100,55 @@ def test_structured_parse_handles_output_item_with_none_content() -> None:
 
     assert response.parsed is not None
     assert response.parsed["intent_summary"] == "ok"
+
+
+def test_openai_timeout_env_override_applies_to_client(monkeypatch) -> None:
+    """Provider should honor explicit timeout env overrides."""
+    client = MagicMock()
+    client.responses.parse.return_value = _mock_parse_response()
+    monkeypatch.setenv("GITSUMMARY_OPENAI_TIMEOUT_SECONDS", "45")
+
+    with patch("gitsummary.llm.providers.openai_provider.OpenAI", return_value=client) as mock_openai:
+        OpenAIProvider(ProviderConfig(api_key="sk-test", model="gpt-5-nano"))
+
+    assert mock_openai.call_args.kwargs["timeout"] == 45.0
+
+
+def test_timeout_errors_retry_then_skip() -> None:
+    """Timeouts should retry to budget, then surface as skippable skips."""
+    client = MagicMock()
+    request = httpx.Request("POST", "https://api.openai.com/v1/responses")
+    client.responses.parse.side_effect = provider_module.APITimeoutError(request=request)
+
+    with patch("gitsummary.llm.providers.openai_provider.OpenAI", return_value=client):
+        provider = OpenAIProvider(
+            ProviderConfig(api_key="sk-test", model="gpt-5-nano", max_retries=1, retry_delay=0)
+        )
+        with pytest.raises(SkippableLLMError) as exc_info:
+            provider.extract_structured(prompt="test", schema=_Schema, system_prompt="system")
+
+    assert exc_info.value.reason == "llm_timeout"
+    assert client.responses.parse.call_count == 2
+
+
+def test_context_length_errors_are_skippable() -> None:
+    """Oversized prompt rejections should become skippable, not generic failures."""
+    client = MagicMock()
+    request = httpx.Request("POST", "https://api.openai.com/v1/responses")
+    response = httpx.Response(400, request=request)
+
+    with patch("gitsummary.llm.providers.openai_provider.OpenAI", return_value=client):
+        provider = OpenAIProvider(ProviderConfig(api_key="sk-test", model="gpt-5-nano"))
+        with pytest.raises(SkippableLLMError) as exc_info:
+            with patch.object(
+                provider._client.responses,
+                "parse",
+                side_effect=provider_module.BadRequestError(
+                    "context_length_exceeded",
+                    response=response,
+                    body={"error": {"code": "context_length_exceeded"}},
+                ),
+            ):
+                provider.extract_structured(prompt="test", schema=_Schema, system_prompt="system")
+
+    assert exc_info.value.reason == "llm_context_length_exceeded"

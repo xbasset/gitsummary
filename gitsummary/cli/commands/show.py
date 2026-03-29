@@ -14,6 +14,7 @@ from ...infrastructure import (
     list_commits_in_range,
     load_artifact,
     load_release_note,
+    prepare_storage_backend,
     resolve_revision,
 )
 from ...reports import ReleaseNote
@@ -52,6 +53,7 @@ def show(
         typer.secho("No commits found.", err=True, fg=typer.colors.YELLOW)
         raise typer.Exit(code=1)
 
+    prepare_storage_backend(storage)
     found = 0
     missing = 0
 

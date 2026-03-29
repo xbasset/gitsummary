@@ -30,6 +30,8 @@ gitsummary release-note latest --no-llm
   - Default is strict when LLM is enabled: if extraction fails, the command errors
     instead of writing heuristic fallback artifacts. Use
     `--allow-heuristic-fallback` to restore legacy behavior.
+  - Oversized notebook/binary-ish diffs and post-retry LLM timeouts are skipped
+    explicitly instead of emitting heuristic artifacts.
 - One-shot release notes: `gitsummary release-note latest [--reanalyze] [--no-llm]`
 - Changelog: `gitsummary generate changelog <range> [--format json]`
 - Show stored artifacts/notes: `gitsummary show <commit>` / `gitsummary show release-note <rev>`

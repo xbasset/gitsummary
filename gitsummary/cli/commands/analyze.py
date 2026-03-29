@@ -8,6 +8,7 @@ Results are stored in the selected backend (default: Git Notes).
 from __future__ import annotations
 
 import os
+import json
 from typing import List, Optional
 
 import typer
@@ -18,12 +19,20 @@ from ...infrastructure import (
     artifact_exists,
     get_commit_diff,
     list_commits_in_range,
+    prepare_storage_backend,
     save_artifact,
 )
-from ...services import AnalyzerService
+from ...services import AnalyzerService, SkippableCommitError
 from ..formatters import format_artifact_json, format_artifact_yaml
 from ..storage import storage_option
 from ..ui import UXState, echo_status, spinner
+
+
+def _emit_machine_status(status: str, commit_sha: str, **payload: object) -> None:
+    raw = os.environ.get("GITSUMMARY_EMIT_STATUS_JSON", "").strip().lower()
+    if raw not in {"1", "true", "yes", "on"}:
+        return
+    typer.echo("GITSUMMARY_STATUS " + json.dumps({"status": status, "sha": commit_sha, **payload}))
 
 
 def analyze(
@@ -129,6 +138,7 @@ def analyze(
         raise typer.Exit(code=1)
 
     if not dry_run:
+        prepare_storage_backend(storage)
         provider_info = f" (provider: {provider})" if provider else ""
         llm_info = f" with LLM{provider_info}" if use_llm else " (heuristic only)"
         echo_status(
@@ -153,6 +163,12 @@ def analyze(
         if not reanalyze and not force and artifact_exists(commit.sha, backend=storage):
             if not dry_run:
                 typer.echo(f"  ⊘ {commit.short_sha} (existing, skipped)")
+                _emit_machine_status(
+                    "skipped",
+                    commit.sha,
+                    reason="artifact_exists",
+                    detail="Artifact already exists in storage.",
+                )
             skipped += 1
             continue
 
@@ -174,9 +190,19 @@ def analyze(
                 # Store in backend
                 save_artifact(artifact, backend=storage, force=force)
                 typer.echo(f"  ✓ {commit.short_sha} {commit.summary[:50]}")
+                _emit_machine_status("analyzed", commit.sha)
 
             analyzed += 1
 
+        except SkippableCommitError as exc:
+            typer.echo(f"  ⊘ {commit.short_sha} (skipped: {exc.reason})")
+            _emit_machine_status(
+                "skipped",
+                commit.sha,
+                reason=exc.reason,
+                detail=exc.detail,
+            )
+            skipped += 1
         except Exception as exc:
             if verbose:
                 typer.secho(

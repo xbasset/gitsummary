@@ -20,6 +20,7 @@ from ...infrastructure import (
     get_commit_diff,
     list_commits_in_range,
     load_artifacts_for_range,
+    prepare_storage_backend,
     repository_root,
 )
 from ...renderers import format_release_note_markdown, format_release_note_text
@@ -167,6 +168,7 @@ def _build_release_notes_output(
 
     shas = [c.sha for c in commits]
     backend_label = "Git Notes" if storage == "notes" else "Postgres"
+    prepare_storage_backend(storage)
     with spinner(
         f"Loading artifacts from {backend_label} (read-only)",
         final_state=UXState.SUCCESS,

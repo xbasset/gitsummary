@@ -28,6 +28,7 @@ PROJECT_NAME_ENV = "GITSUMMARY_PROJECT_NAME"
 PROJECT_PROVIDER_ENV = "GITSUMMARY_PROJECT_PROVIDER"
 PROJECT_URL_ENV = "GITSUMMARY_PROJECT_URL"
 CONTENT_TYPE_COMMIT_ARTIFACT = "gitsummary.commit_artifact"
+POSTGRES_SCHEMA_LOCK_ID = 0x4753494F
 
 ANALYSIS_COLUMNS: Tuple[Tuple[str, str], ...] = (
     ("analysis_mode", "text"),
@@ -76,6 +77,7 @@ ANALYSIS_COLUMN_PLACEHOLDERS = ", ".join(["%s"] * len(ANALYSIS_COLUMN_NAMES))
 ANALYSIS_COLUMN_UPDATES = ",\n                ".join(
     f"{name} = EXCLUDED.{name}" for name in ANALYSIS_COLUMN_NAMES
 )
+_SCHEMA_READY = False
 
 
 @dataclass
@@ -171,6 +173,23 @@ def _ensure_schema(conn: psycopg.Connection) -> None:
             ADD COLUMN IF NOT EXISTS tool_version text
         """
     )
+
+
+def _ensure_schema_with_lock(conn: psycopg.Connection) -> None:
+    conn.execute("SELECT pg_advisory_lock(%s)", (POSTGRES_SCHEMA_LOCK_ID,))
+    try:
+        _ensure_schema(conn)
+    finally:
+        conn.execute("SELECT pg_advisory_unlock(%s)", (POSTGRES_SCHEMA_LOCK_ID,))
+
+
+def ensure_postgres_schema() -> None:
+    global _SCHEMA_READY
+    if _SCHEMA_READY:
+        return
+    with _connect() as conn:
+        _ensure_schema_with_lock(conn)
+    _SCHEMA_READY = True
 
 
 def _infer_project_from_repo_path(repo_path: Optional[Path]) -> Optional[ProjectInfo]:
@@ -453,6 +472,7 @@ def save_artifact_to_postgres(
     *,
     force: bool = True,
 ) -> str:
+    ensure_postgres_schema()
     sha = artifact.commit_hash
     tags: List[str] = [artifact.category.value, artifact.impact_scope.value]
     if artifact.is_breaking:
@@ -461,7 +481,6 @@ def save_artifact_to_postgres(
     tool_version = __version__
     project = None
     with _connect() as conn:
-        _ensure_schema(conn)
         project = _resolve_project(conn)
         if not force:
             existing = conn.execute(
@@ -552,7 +571,6 @@ def save_artifact_to_postgres(
 
 def load_artifact_from_postgres(commit_sha: str) -> Optional[CommitArtifact]:
     with _connect() as conn:
-        _ensure_schema(conn)
         project = _resolve_project(conn)
         row = conn.execute(
             f"""
@@ -580,7 +598,6 @@ def load_artifact_from_postgres(commit_sha: str) -> Optional[CommitArtifact]:
 
 def artifact_exists_in_postgres(commit_sha: str) -> bool:
     with _connect() as conn:
-        _ensure_schema(conn)
         project = _resolve_project(conn)
         row = conn.execute(
             f"""
@@ -593,8 +610,8 @@ def artifact_exists_in_postgres(commit_sha: str) -> bool:
 
 
 def remove_artifact_from_postgres(commit_sha: str) -> bool:
+    ensure_postgres_schema()
     with _connect() as conn:
-        _ensure_schema(conn)
         project = _resolve_project(conn)
         result = conn.execute(
             f"""
@@ -613,7 +630,6 @@ def load_artifacts_for_range_postgres(
     if not commit_shas:
         return result
     with _connect() as conn:
-        _ensure_schema(conn)
         project = _resolve_project(conn)
         rows = conn.execute(
             f"""

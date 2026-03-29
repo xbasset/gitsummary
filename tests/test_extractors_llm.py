@@ -18,6 +18,7 @@ from gitsummary.extractors.llm import (
     _null_provider,
 )
 from gitsummary.extractors.base import ExtractionResult
+from gitsummary.llm.base import SkippableLLMError
 
 
 class TestLegacyProviderInterface:
@@ -261,3 +262,18 @@ class TestExtractWithNewProvider:
         assert isinstance(result, ExtractionResult)
         assert result.intent_summary is None
         mock_provider.extract_structured.assert_called_once()
+
+    def test_skippable_provider_error_bubbles_up(self, simple_commit: CommitInfo) -> None:
+        """Prompt-budget and timeout skips should not be swallowed as fallback."""
+        extractor = LLMExtractor(provider_name="test")
+        mock_provider = MagicMock()
+        mock_provider.extract_structured.side_effect = SkippableLLMError(
+            "diff_too_large",
+            "diff remained oversized",
+        )
+
+        with patch.object(extractor, "_get_provider", return_value=mock_provider):
+            with pytest.raises(SkippableLLMError) as exc_info:
+                extractor.extract(simple_commit, diff_patch="+x")
+
+        assert exc_info.value.reason == "diff_too_large"

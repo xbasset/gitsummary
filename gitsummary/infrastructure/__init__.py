@@ -54,6 +54,7 @@ from .storage import (
     load_artifact,
     load_artifacts_for_range,
     normalize_storage_backend,
+    prepare_storage_backend,
     remove_artifact_from_notes,
     remove_artifact,
     save_artifact,
@@ -110,4 +111,5 @@ __all__ = [
     "remove_artifact",
     "load_artifacts_for_range",
     "normalize_storage_backend",
+    "prepare_storage_backend",
 ]

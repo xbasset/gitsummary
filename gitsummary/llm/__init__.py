@@ -37,6 +37,7 @@ from .base import (
     ProviderConfig,
     ProviderError,
     ProviderNotAvailableError,
+    SkippableLLMError,
 )
 from .config import ConfigManager, get_config_manager
 from .registry import (
@@ -53,6 +54,7 @@ __all__ = [
     "ProviderConfig",
     "ProviderError",
     "ProviderNotAvailableError",
+    "SkippableLLMError",
     # Configuration
     "ConfigManager",
     "get_config_manager",
@@ -62,4 +64,3 @@ __all__ = [
     "list_available_providers",
     "list_all_providers",
 ]
-

@@ -21,6 +21,7 @@ from ...infrastructure import (
     GitCommandError,
     list_commits_in_range,
     load_artifacts_for_range,
+    prepare_storage_backend,
     repository_root,
     save_release_note,
 )
@@ -68,6 +69,7 @@ def generate_changelog(
 
     # Load all artifacts
     shas = [c.sha for c in commits]
+    prepare_storage_backend(storage)
     with spinner("Loading artifacts", final_state=UXState.SUCCESS):
         artifacts = load_artifacts_for_range(shas, backend=storage)
 
@@ -158,6 +160,7 @@ def generate_feed(
         raise typer.Exit(code=1)
 
     shas = [c.sha for c in commits]
+    prepare_storage_backend(storage)
     with spinner("Loading artifacts", final_state=UXState.SUCCESS):
         artifacts = load_artifacts_for_range(shas, backend=storage)
 
@@ -260,6 +263,7 @@ def generate_release_notes(
 
     # Load all artifacts
     shas = [c.sha for c in commits]
+    prepare_storage_backend(storage)
     with spinner("Loading artifacts", final_state=UXState.SUCCESS):
         artifacts = load_artifacts_for_range(shas, backend=storage)
 
@@ -404,6 +408,7 @@ def generate_impact(
 
     # Load all artifacts
     shas = [c.sha for c in commits]
+    prepare_storage_backend(storage)
     with spinner("Loading artifacts", final_state=UXState.SUCCESS):
         artifacts = load_artifacts_for_range(shas, backend=storage)
 

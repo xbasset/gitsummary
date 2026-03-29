@@ -84,6 +84,18 @@ class TestRun:
             call_args = mock_run.call_args
             assert call_args.kwargs["cwd"] == Path("/some/path")
 
+    def test_run_decodes_non_utf8_output_with_replacement(self) -> None:
+        """Non-UTF-8 git output should not crash command execution."""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout=b"ok:\xe5\n",
+                stderr=b"",
+            )
+            result = run(["status"])
+        assert "ok:" in result
+        assert "\ufffd" in result
+
 
 class TestRepositoryRoot:
     """Tests for repository_root function."""

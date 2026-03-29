@@ -46,22 +46,32 @@ def run(args: Sequence[str], *, cwd: Optional[Path] = None) -> str:
         check=False,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        text=True,
+        text=False,
     )
+    stdout = _decode_git_output(process.stdout)
+    stderr = _decode_git_output(process.stderr)
     duration = time.time() - started
     success = process.returncode == 0
     trace_manager.log_git_command(
         list(args),
         cwd=cwd,
         returncode=process.returncode,
-        stdout=process.stdout,
-        stderr=process.stderr,
+        stdout=stdout,
+        stderr=stderr,
         duration_seconds=duration,
         success=success,
     )
     if not success:
-        raise GitCommandError(process.stderr.strip() or "git command failed")
-    return process.stdout
+        raise GitCommandError(stderr.strip() or "git command failed")
+    return stdout
+
+
+def _decode_git_output(raw: bytes | str | None) -> str:
+    if raw is None:
+        return ""
+    if isinstance(raw, str):
+        return raw
+    return raw.decode("utf-8", errors="replace")
 
 
 # ─────────────────────────────────────────────────────────────────────────────

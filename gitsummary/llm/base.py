@@ -43,6 +43,22 @@ class ProviderAuthenticationError(ProviderError):
     pass
 
 
+class SkippableLLMError(ProviderError):
+    """Raised when a commit should be skipped instead of heuristically analyzed."""
+
+    def __init__(
+        self,
+        reason: str,
+        detail: Optional[str] = None,
+        *,
+        retryable: bool = False,
+    ) -> None:
+        self.reason = reason
+        self.detail = detail or reason
+        self.retryable = retryable
+        super().__init__(self.detail)
+
+
 @dataclass
 class LLMResponse:
     """Standardized response from any LLM provider.
@@ -97,7 +113,7 @@ class ProviderConfig:
     # Request parameters
     temperature: float = 0.0  # Low temp for deterministic extraction
     max_tokens: int = 2048
-    timeout: float = 30.0
+    timeout: float = 120.0
 
     # Retry configuration
     max_retries: int = 3
@@ -218,6 +234,5 @@ class BaseLLMProvider(ABC):
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} model={self.get_model()}>"
-
 
 

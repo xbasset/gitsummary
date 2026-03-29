@@ -20,9 +20,20 @@ from ..core import (
 from ..core.artifact import AnalysisMeta
 from ..extractors import HeuristicExtractor, LLMExtractor
 from ..infrastructure import diff_patch_for_commit
+from ..llm.base import SkippableLLMError
 from .analysis_metrics import build_input_metrics
 
 logger = logging.getLogger(__name__)
+
+
+class SkippableCommitError(RuntimeError):
+    """Raised when a commit should be skipped instead of analyzed heuristically."""
+
+    def __init__(self, commit_sha: str, reason: str, detail: Optional[str] = None) -> None:
+        self.commit_sha = commit_sha
+        self.reason = reason
+        self.detail = detail or reason
+        super().__init__(self.detail)
 
 
 class AnalyzerService:
@@ -120,6 +131,8 @@ class AnalyzerService:
         if provider_ready and self._llm_extractor is not None:
             try:
                 llm_result = self._llm_extractor.extract(commit, diff, diff_patch)
+            except SkippableLLMError as e:
+                raise SkippableCommitError(commit.sha, e.reason, e.detail) from e
             except Exception as e:
                 if self.require_llm_success:
                     raise RuntimeError(

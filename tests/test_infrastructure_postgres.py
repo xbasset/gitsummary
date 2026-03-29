@@ -66,7 +66,7 @@ class TestSaveArtifactToPostgres:
     ) -> None:
         conn = FakeConn()
         monkeypatch.setattr(pg, "_connect", lambda: conn)
-        monkeypatch.setattr(pg, "_ensure_schema", lambda _conn: None)
+        monkeypatch.setattr(pg, "ensure_postgres_schema", lambda: None)
         monkeypatch.setattr(pg, "_resolve_project", lambda _conn: _project())
         monkeypatch.setattr(pg, "_json", lambda value: value)
 
@@ -102,7 +102,7 @@ class TestSaveArtifactToPostgres:
     ) -> None:
         conn = FakeConn(responses=[FakeCursor(one={"exists": 1})])
         monkeypatch.setattr(pg, "_connect", lambda: conn)
-        monkeypatch.setattr(pg, "_ensure_schema", lambda _conn: None)
+        monkeypatch.setattr(pg, "ensure_postgres_schema", lambda: None)
         monkeypatch.setattr(pg, "_resolve_project", lambda _conn: _project())
 
         with pytest.raises(FileExistsError):
@@ -117,7 +117,7 @@ class TestSaveArtifactToPostgres:
     ) -> None:
         conn = FakeConn()
         monkeypatch.setattr(pg, "_connect", lambda: conn)
-        monkeypatch.setattr(pg, "_ensure_schema", lambda _conn: None)
+        monkeypatch.setattr(pg, "ensure_postgres_schema", lambda: None)
         monkeypatch.setattr(pg, "_resolve_project", lambda _conn: _project())
         monkeypatch.setattr(pg, "_json", lambda value: value)
 
@@ -158,7 +158,6 @@ class TestLoadArtifactFromPostgres:
         }
         conn = FakeConn(responses=[FakeCursor(one=row)])
         monkeypatch.setattr(pg, "_connect", lambda: conn)
-        monkeypatch.setattr(pg, "_ensure_schema", lambda _conn: None)
         monkeypatch.setattr(pg, "_resolve_project", lambda _conn: _project())
 
         artifact = pg.load_artifact_from_postgres(feature_artifact.commit_hash)
@@ -177,7 +176,6 @@ class TestLoadArtifactFromPostgres:
     def test_load_returns_none_when_missing(self, monkeypatch: pytest.MonkeyPatch) -> None:
         conn = FakeConn(responses=[FakeCursor(one=None)])
         monkeypatch.setattr(pg, "_connect", lambda: conn)
-        monkeypatch.setattr(pg, "_ensure_schema", lambda _conn: None)
         monkeypatch.setattr(pg, "_resolve_project", lambda _conn: _project())
 
         assert pg.load_artifact_from_postgres("missing") is None
@@ -204,9 +202,26 @@ class TestLoadArtifactsForRangePostgres:
         ]
         conn = FakeConn(responses=[FakeCursor(all_rows=rows)])
         monkeypatch.setattr(pg, "_connect", lambda: conn)
-        monkeypatch.setattr(pg, "_ensure_schema", lambda _conn: None)
         monkeypatch.setattr(pg, "_resolve_project", lambda _conn: _project())
 
         result = pg.load_artifacts_for_range_postgres(wanted)
         assert result[wanted[0]] is not None
         assert result[wanted[1]] is None
+
+
+class TestEnsurePostgresSchema:
+    def test_ensure_postgres_schema_uses_advisory_lock_once(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        conn = FakeConn()
+        ensure_calls: list[str] = []
+        monkeypatch.setattr(pg, "_SCHEMA_READY", False)
+        monkeypatch.setattr(pg, "_connect", lambda: conn)
+        monkeypatch.setattr(pg, "_ensure_schema", lambda _conn: ensure_calls.append("called"))
+
+        pg.ensure_postgres_schema()
+        pg.ensure_postgres_schema()
+
+        assert ensure_calls == ["called"]
+        assert conn.calls[0][0] == "SELECT pg_advisory_lock(%s)"
+        assert conn.calls[-1][0] == "SELECT pg_advisory_unlock(%s)"
